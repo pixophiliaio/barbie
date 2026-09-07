@@ -60,9 +60,9 @@ class DetectRequest(BaseModel):
 
 class FolderDefaultsRequest(BaseModel):
     folder_path: str
-    gender: str
     top_fit: str
     bottom_fit: str
+    gender: Optional[str] = "male"
 
 @app.get("/api/health")
 def health():

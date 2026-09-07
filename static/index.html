@@ -63,14 +63,14 @@
           <span>👔 Folder Setup:</span>
         </span>
 
-        <!-- Gender -->
+        <!-- Model Avatar (Visualization) -->
         <div class="dock-group" style="padding: 3px 8px;">
-          <span class="dock-label" style="font-size:0.72rem;">Gender:</span>
+          <span class="dock-label" style="font-size:0.72rem;">Model:</span>
           <div class="segmented-control gender-control">
-            <button type="button" class="segment-btn active male" data-gender-toggle="male" style="padding: 3px 8px; font-size: 0.75rem;">
+            <button type="button" class="segment-btn active male" data-gender-toggle="male" style="padding: 3px 8px; font-size: 0.75rem;" title="3D Avatar: Male (Nathan)">
               ♂ Male (Nathan)
             </button>
-            <button type="button" class="segment-btn female" data-gender-toggle="female" style="padding: 3px 8px; font-size: 0.75rem;">
+            <button type="button" class="segment-btn female" data-gender-toggle="female" style="padding: 3px 8px; font-size: 0.75rem;" title="3D Avatar: Female (Sophia)">
               ♀ Female (Sophia)
             </button>
           </div>
@@ -291,14 +291,14 @@
     <div class="visualizer-footer">
       <div class="dock-section">
         
-        <!-- Folder Gender Toggle -->
+        <!-- Folder Model Avatar Toggle (Visualization) -->
         <div class="dock-group">
-          <span class="dock-label">Gender:</span>
+          <span class="dock-label">Model:</span>
           <div class="segmented-control gender-control">
-            <button type="button" class="segment-btn active male" data-gender-toggle="male" title="Folder Gender: Male (M)">
+            <button type="button" class="segment-btn active male" data-gender-toggle="male" title="3D Model Avatar: Male (M)">
               ♂ Male <span class="kbd-hint">M</span>
             </button>
-            <button type="button" class="segment-btn female" data-gender-toggle="female" title="Folder Gender: Female (F)">
+            <button type="button" class="segment-btn female" data-gender-toggle="female" title="3D Model Avatar: Female (F)">
               ♀ Female <span class="kbd-hint">F</span>
             </button>
           </div>
@@ -379,9 +379,9 @@
     <div class="folder-setup-dialog">
       <div class="folder-setup-header">
         <div class="folder-setup-badge">👔 Photoshoot Setup</div>
-        <h2 class="folder-setup-title">Tag Garment Fits & Model Gender</h2>
+        <h2 class="folder-setup-title">Tag Garment Fits & 3D Avatar</h2>
         <p class="folder-setup-desc">
-          Set default attributes for <strong id="setupFolderLabel">this photoshoot</strong>. These will apply across this photos folder.
+          Select 3D model avatar for visualization and default garment fits for <strong id="setupFolderLabel">this photoshoot</strong>.
         </p>
       </div>
 
@@ -402,7 +402,7 @@
           
           <!-- Gender -->
           <div class="setup-field-group">
-            <label class="setup-field-label">Model Gender:</label>
+            <label class="setup-field-label">3D Model Avatar (Visualization):</label>
             <div class="setup-segmented gender-setup">
               <button type="button" class="setup-segment-btn active male" data-setup-gender="male">
                 ♂ Male (Nathan) <span class="kbd-hint" style="background:rgba(255,255,255,0.2); color:white;">M</span>
@@ -455,10 +455,10 @@
   <script src="/static/vendor/OrbitControls.js"></script>
 
   <!-- Application Scripts (Cache Busted) -->
-  <script src="/static/js/api.js?v=20260907_5"></script>
-  <script src="/static/js/bbox_canvas.js?v=20260907_5"></script>
-  <script src="/static/js/model_viewer.js?v=20260907_5"></script>
-  <script src="/static/js/frontal_slider.js?v=20260907_5"></script>
-  <script src="/static/js/app.js?v=20260907_5"></script>
+  <script src="/static/js/api.js?v=20260907_6"></script>
+  <script src="/static/js/bbox_canvas.js?v=20260907_6"></script>
+  <script src="/static/js/model_viewer.js?v=20260907_6"></script>
+  <script src="/static/js/frontal_slider.js?v=20260907_6"></script>
+  <script src="/static/js/app.js?v=20260907_6"></script>
 </body>
 </html>

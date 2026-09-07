@@ -109,7 +109,6 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(defaults["top_fit"], "tight")
 
         loaded_defaults = PoseManager.get_folder_defaults(str(self.photos1))
-        self.assertEqual(loaded_defaults["gender"], "female")
         self.assertEqual(loaded_defaults["top_fit"], "tight")
 
     def test_photos_folder_json_format(self):
@@ -135,7 +134,8 @@ class TestBackend(unittest.TestCase):
         with open(self.photos1 / "pose.json", "r", encoding="utf-8") as f:
             raw = json.load(f)
 
-        self.assertEqual(raw["gender"], "female")
+        # Ensure gender is NOT in pose.json (only used for model visualization)
+        self.assertNotIn("gender", raw)
         self.assertEqual(raw["fitting"]["top"], "loose")
         self.assertEqual(raw["fitting"]["bottom"], "tight")
         self.assertEqual(raw["top_fit"], "loose")

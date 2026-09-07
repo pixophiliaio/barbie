@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+import json
 from pathlib import Path
 from backend.pose_manager import PoseManager
 from backend.scanner import scan_photos_folders, get_folder_details
@@ -39,9 +40,13 @@ class TestMultiFolderFlow(unittest.TestCase):
 
         details = get_folder_details(str(self.folder1))
         self.assertTrue(details["defaults_confirmed"])
-        self.assertEqual(details["gender"], "female")
         self.assertEqual(details["top_fit"], "loose")
         self.assertEqual(details["bottom_fit"], "tight")
+
+        # Verify raw pose.json does NOT contain gender
+        with open(self.folder1 / "pose.json", "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        self.assertNotIn("gender", raw)
 
         # Folder 2 remains unconfirmed
         details2 = get_folder_details(str(self.folder2))

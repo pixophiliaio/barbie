@@ -514,7 +514,7 @@ class App {
       // Update in-memory poses to reflect new folder-wide defaults
       for (const img of this.folderData.images) {
         if (this.folderData.poses[img]) {
-          this.folderData.poses[img].gender = this.folderDefaults.gender;
+          delete this.folderData.poses[img].gender;
           this.folderData.poses[img].top_fit = this.folderDefaults.top_fit;
           this.folderData.poses[img].bottom_fit = this.folderDefaults.bottom_fit;
           this.folderData.poses[img].fitting = {
@@ -973,11 +973,9 @@ class App {
 
       let tagsHtml = '';
       if (isAnnotated) {
-        const g = pose.gender || this.folderDefaults.gender;
         const t = pose.top_fit || this.folderDefaults.top_fit;
         const b = pose.bottom_fit || this.folderDefaults.bottom_fit;
         tagsHtml = `
-          <span class="tag-pill gender">${g === 'female' ? '♀ Female' : '♂ Male'}</span>
           <span class="tag-pill fit">T: ${t} | B: ${b}</span>
           <span class="tag-pill angle">${Math.round(pose.rotation_angle || 0)}°</span>
         `;
