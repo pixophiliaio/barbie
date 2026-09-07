@@ -151,14 +151,43 @@ class TestBackend(unittest.TestCase):
         self.assertNotIn("bottom_fit", img_record)
         self.assertNotIn("fitting", img_record)
 
+    def test_orient_image_vertical(self):
+        from backend.app import orient_image_vertical
+        # Horizontal image (width 600, height 400)
+        im_horiz = Image.new("RGB", (600, 400), color=(200, 200, 200))
+        im_vert = orient_image_vertical(im_horiz)
+        self.assertGreater(im_vert.height, im_vert.width)
+        self.assertEqual(im_vert.height, 600)
+        self.assertEqual(im_vert.width, 400)
+
+        # Vertical image (width 400, height 600) remains vertical
+        im_portrait = Image.new("RGB", (400, 600), color=(200, 200, 200))
+        im_portrait_res = orient_image_vertical(im_portrait)
+        self.assertEqual(im_portrait_res.height, 600)
+        self.assertEqual(im_portrait_res.width, 400)
+
     def test_detect_bbox(self):
         from backend.detector import detect_human_bbox
-        # Test detection on sample image
         img_path = str(self.photos1 / "img1.jpg")
         res = detect_human_bbox(img_path)
         self.assertIsNotNone(res)
         self.assertIn("norm_x1", res)
         self.assertIn("detection_time_ms", res)
+
+    def test_folder_details_with_bbox(self):
+        pose_data = {
+            "bbox": {"x1": 10, "y1": 20, "x2": 90, "y2": 95, "norm_x1": 0.1, "norm_y1": 0.2, "norm_x2": 0.9, "norm_y2": 0.95},
+            "rotation_angle": 0.0,
+            "rotation_label": "Front (0°)"
+        }
+        PoseManager.save_image_pose(str(self.photos1), "img1.jpg", pose_data)
+        details = get_folder_details(str(self.photos1))
+        # img1 is saved with bbox
+        self.assertIn("img1.jpg", details["poses"])
+        self.assertIn("bbox", details["poses"]["img1.jpg"])
+        self.assertAlmostEqual(details["poses"]["img1.jpg"]["bbox"]["norm_x1"], 0.1)
+        # img2 is pending (not annotated)
+        self.assertNotIn("img2.jpg", details["poses"])
 
 if __name__ == "__main__":
     unittest.main()

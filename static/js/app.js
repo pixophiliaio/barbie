@@ -579,9 +579,53 @@ class App {
         `;
       }
 
+      let bboxHtml = '';
+      if (isAnnotated && pose && pose.bbox) {
+        const b = pose.bbox;
+        let nx1 = b.norm_x1 !== undefined ? b.norm_x1 : undefined;
+        let ny1 = b.norm_y1 !== undefined ? b.norm_y1 : undefined;
+        let nx2 = b.norm_x2 !== undefined ? b.norm_x2 : undefined;
+        let ny2 = b.norm_y2 !== undefined ? b.norm_y2 : undefined;
+
+        // Fallback if pixel coordinates are saved without normalized coordinates
+        if (nx1 === undefined && b.x1 !== undefined && (b.orig_w || b.img_width || b.width)) {
+          const imgW = b.orig_w || b.img_width || b.width;
+          const imgH = b.orig_h || b.img_height || b.height;
+          if (imgW && imgH) {
+            nx1 = b.x1 / imgW;
+            ny1 = b.y1 / imgH;
+            nx2 = b.x2 / imgW;
+            ny2 = b.y2 / imgH;
+          }
+        }
+
+        if (nx1 !== undefined && ny1 !== undefined && nx2 !== undefined && ny2 !== undefined) {
+          const minX = Math.max(0, Math.min(nx1, nx2));
+          const minY = Math.max(0, Math.min(ny1, ny2));
+          const maxX = Math.min(1, Math.max(nx1, nx2));
+          const maxY = Math.min(1, Math.max(ny1, ny2));
+
+          const leftPct = (minX * 100).toFixed(2);
+          const topPct = (minY * 100).toFixed(2);
+          const widthPct = ((maxX - minX) * 100).toFixed(2);
+          const heightPct = ((maxY - minY) * 100).toFixed(2);
+
+          if (parseFloat(widthPct) > 0 && parseFloat(heightPct) > 0) {
+            bboxHtml = `
+              <div class="thumb-bbox-box" style="left:${leftPct}%; top:${topPct}%; width:${widthPct}%; height:${heightPct}%;">
+                <span class="thumb-bbox-tag">BBox</span>
+              </div>
+            `;
+          }
+        }
+      }
+
       card.innerHTML = `
         <div class="card-thumb-container">
-          <img class="card-thumb" src="${thumbUrl}" alt="${imgName}" loading="lazy" />
+          <div class="thumb-stage">
+            <img class="card-thumb" src="${thumbUrl}" alt="${imgName}" loading="lazy" />
+            ${bboxHtml}
+          </div>
           <div class="card-status-badge ${isAnnotated ? 'annotated' : 'pending'}">
             ${isAnnotated ? '✓ Saved' : '● Pending'}
           </div>
@@ -702,8 +746,13 @@ class App {
     }
   }
 
-  closeModal() {
+  async closeModal() {
     this.modal.classList.remove('active');
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+      await this.saveCurrentPose();
+    }
     this.renderGallery();
     this.updateFolderStats();
   }

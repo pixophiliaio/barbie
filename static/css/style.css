@@ -397,16 +397,69 @@ body {
   justify-content: center;
 }
 
-.card-thumb {
-  width: 100%;
+.thumb-stage {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  object-fit: contain;
-  transition: transform 0.3s ease;
+  max-width: 100%;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.image-card:hover .card-thumb {
+.card-thumb {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.image-card:hover .thumb-stage {
   transform: scale(1.03);
 }
+
+/* Saved Bounding Box Overlay on Gallery Thumbnail */
+.thumb-bbox-box {
+  position: absolute;
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.45);
+  transition: all 0.2s ease;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.image-card:hover .thumb-bbox-box {
+  border-color: #818cf8;
+  background: rgba(99, 102, 241, 0.32);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.65);
+}
+
+.thumb-bbox-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(99, 102, 241, 0.95);
+  color: #ffffff;
+  font-size: 0.60rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: background 0.2s ease;
+}
+
+.image-card:hover .thumb-bbox-tag {
+  background: #818cf8;
+}
+
 
 .card-status-badge {
   position: absolute;
