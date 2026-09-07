@@ -344,7 +344,8 @@
   transition: all 0.15s ease;
 }
 
-.cardinal-btn:hover, .cardinal-btn.active {
+.cardinal-btn:hover,
+.cardinal-btn.active {
   background: var(--accent-primary);
   color: white;
   border-color: var(--accent-primary);
@@ -630,4 +631,91 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-family: var(--font-mono);
   pointer-events: none;
+}
+
+/* Floating Folder Completion Banner */
+.folder-complete-banner {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1.5px solid #6366f1;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(99, 102, 241, 0.4);
+  backdrop-filter: blur(16px);
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  animation: bannerSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bannerSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 25px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.complete-banner-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+  animation: bounceBanner 1s infinite alternate ease-in-out;
+}
+
+@keyframes bounceBanner {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
+}
+
+.complete-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.complete-banner-text strong {
+  color: #f8fafc;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.complete-banner-text span {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.complete-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+/* Finish & Next Folder Pulsing Buttons */
+.btn-finish-folder {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.5) !important;
+  animation: pulseFinish 2s infinite ease-in-out;
+}
+
+.next-folder-btn {
+  background: rgba(99, 102, 241, 0.25) !important;
+  border-color: #6366f1 !important;
+  color: #c7d2fe !important;
+  font-weight: 600;
+}
+
+@keyframes pulseFinish {
+  0% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(99, 102, 241, 0.85); }
+  100% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
 }

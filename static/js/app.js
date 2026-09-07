@@ -114,36 +114,38 @@ class App {
     this.btnSkipSetup?.addEventListener('click', () => this.closeFolderSetup(false));
     this.btnOpenSetupModal?.addEventListener('click', () => this.openFolderSetup());
 
-    // Setup modal segment button listeners
     document.querySelectorAll('[data-setup-gender]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        this.setupGender = btn.dataset.setupGender;
-        document.querySelectorAll('[data-setup-gender]').forEach((b) => {
-          b.classList.toggle('active', b.dataset.setupGender === this.setupGender);
-        });
+        this.setSetupGender(btn.dataset.setupGender);
       });
     });
 
     document.querySelectorAll('[data-setup-top]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        this.setupTopFit = btn.dataset.setupTop;
-        document.querySelectorAll('[data-setup-top]').forEach((b) => {
-          b.classList.toggle('active', b.dataset.setupTop === this.setupTopFit);
-        });
+        this.setSetupTopFit(btn.dataset.setupTop);
       });
     });
 
     document.querySelectorAll('[data-setup-btm]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        this.setupBottomFit = btn.dataset.setupBtm;
-        document.querySelectorAll('[data-setup-btm]').forEach((b) => {
-          b.classList.toggle('active', b.dataset.setupBtm === this.setupBottomFit);
-        });
+        this.setSetupBottomFit(btn.dataset.setupBtm);
       });
     });
+
+    // Completion Banner Controls
+    this.completeBanner = document.getElementById('folderCompleteBanner');
+    this.completeBannerTitle = document.getElementById('completeBannerTitle');
+    this.completeBannerDesc = document.getElementById('completeBannerDesc');
+    this.completeCountdown = document.getElementById('completeCountdown');
+    this.autoAdvanceTimer = null;
+
+    document.getElementById('btnAdvanceNow')?.addEventListener('click', () => this.advanceNow());
+    document.getElementById('btnCancelAdvance')?.addEventListener('click', () => this.cancelAutoAdvance());
+    document.getElementById('btnNextFolderGallery')?.addEventListener('click', () => this.moveToNextFolder());
+    document.getElementById('btnNextDock')?.addEventListener('click', () => this.nextImage());
 
     document.getElementById('btnPrev').addEventListener('click', () => this.prevImage());
     document.getElementById('btnNext').addEventListener('click', () => this.nextImage());
@@ -242,7 +244,7 @@ class App {
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      // If folder setup modal is active, Enter confirms and Escape skips
+      // If folder setup modal is active, handle setup shortcuts
       if (this.setupModal && this.setupModal.classList.contains('active')) {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -252,7 +254,65 @@ class App {
           e.preventDefault();
           this.closeFolderSetup(false);
           return;
+        } else if (e.key.toLowerCase() === 'm') {
+          e.preventDefault();
+          this.setSetupGender('male');
+          return;
+        } else if (e.key.toLowerCase() === 'f') {
+          e.preventDefault();
+          this.setSetupGender('female');
+          return;
+        } else if (e.key === '1') {
+          e.preventDefault();
+          this.setSetupTopFit('loose');
+          return;
+        } else if (e.key === '2') {
+          e.preventDefault();
+          this.setSetupTopFit('regular');
+          return;
+        } else if (e.key === '3') {
+          e.preventDefault();
+          this.setSetupTopFit('tight');
+          return;
+        } else if (e.key === '4') {
+          e.preventDefault();
+          this.setSetupBottomFit('loose');
+          return;
+        } else if (e.key === '5') {
+          e.preventDefault();
+          this.setSetupBottomFit('regular');
+          return;
+        } else if (e.key === '6') {
+          e.preventDefault();
+          this.setSetupBottomFit('tight');
+          return;
         }
+        return;
+      }
+
+      // If completion banner is active, Enter proceeds immediately and Esc cancels
+      if (this.completeBanner && this.completeBanner.style.display !== 'none') {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.advanceNow();
+          return;
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          this.cancelAutoAdvance();
+          return;
+        }
+      }
+
+      // Global Folder Navigation Shortcuts: N or ] -> Next Folder, [ -> Prev Folder
+      if (e.key.toLowerCase() === 'n' || e.key === ']') {
+        e.preventDefault();
+        this.moveToNextFolder();
+        return;
+      }
+      if (e.key === '[') {
+        e.preventDefault();
+        this.moveToPrevFolder();
+        return;
       }
 
       // G or V toggles between 3-image visualizer and comprehensive thumbnail view
@@ -313,7 +373,9 @@ class App {
       this.folders = res.folders || [];
       this.renderFolderDropdown();
       if (this.folders.length > 0) {
-        this.selectFolder(this.folders[0]);
+        // Automatically start at the first pending (incomplete) folder!
+        const firstPending = this.folders.find(f => !f.is_complete && f.annotated_count < f.total_images) || this.folders[0];
+        this.selectFolder(firstPending);
       } else {
         this.emptyState.style.display = 'flex';
         this.galleryGrid.innerHTML = '';
@@ -327,18 +389,25 @@ class App {
   }
 
   renderFolderDropdown() {
+    if (!this.folderDropdown) return;
+    const currentVal = this.currentFolder?.path || this.folderDropdown.value;
     this.folderDropdown.innerHTML = '';
     for (const f of this.folders) {
       const opt = document.createElement('option');
       opt.value = f.path;
-      opt.textContent = `${f.rel_path} (${f.annotated_count}/${f.total_images})`;
+      const isDone = f.annotated_count >= f.total_images && f.total_images > 0;
+      opt.textContent = `${f.rel_path} (${f.annotated_count}/${f.total_images})${isDone ? ' ✓' : ''}`;
       this.folderDropdown.appendChild(opt);
+    }
+    if (currentVal) {
+      this.folderDropdown.value = currentVal;
     }
   }
 
-  async selectFolder(folder) {
+  async selectFolder(folder, forceOpenSetup = false) {
+    this.cancelAutoAdvance();
     this.currentFolder = folder;
-    this.folderDropdown.value = folder.path;
+    if (this.folderDropdown) this.folderDropdown.value = folder.path;
 
     try {
       const details = await API.getFolderDetails(folder.path);
@@ -357,13 +426,14 @@ class App {
       this.renderGallery();
       this.updateFolderStats();
 
-      // Open directly into the 3-image visualizer studio on first photo
+      // Open directly into the 3-image visualizer studio on first photo (or first pending photo)
       if (this.folderData && this.folderData.images && this.folderData.images.length > 0) {
-        this.openModal(0);
+        const startIdx = this.getFirstPendingIndex();
+        this.openModal(startIdx);
       }
 
-      // When a new photos folder starts without confirmed setup, ask the user showing the first image!
-      if (!this.folderData.defaults_confirmed) {
+      // When a new photos folder starts without confirmed setup OR when advancing to next photoshoot:
+      if (!this.folderData.defaults_confirmed || forceOpenSetup) {
         this.openFolderSetup();
       }
     } catch (err) {
@@ -466,6 +536,27 @@ class App {
     }
   }
 
+  setSetupGender(gender) {
+    this.setupGender = gender;
+    document.querySelectorAll('[data-setup-gender]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.setupGender === gender);
+    });
+  }
+
+  setSetupTopFit(fit) {
+    this.setupTopFit = fit;
+    document.querySelectorAll('[data-setup-top]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.setupTop === fit);
+    });
+  }
+
+  setSetupBottomFit(fit) {
+    this.setupBottomFit = fit;
+    document.querySelectorAll('[data-setup-btm]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.setupBtm === fit);
+    });
+  }
+
   // Photoshoot Folder Setup Modal Handlers
   openFolderSetup() {
     if (!this.folderData) return;
@@ -544,8 +635,282 @@ class App {
       this.folderBadge.classList.remove('complete');
     }
 
-    this.galleryTitle.textContent = this.currentFolder.rel_path;
+    if (this.currentFolder) {
+      this.currentFolder.annotated_count = annotated;
+      this.currentFolder.is_complete = annotated >= total && total > 0;
+      this.renderFolderDropdown();
+    }
+
+    this.galleryTitle.textContent = this.currentFolder?.rel_path || this.folderData.folder_name;
     this.galleryCount.textContent = `(${total} photos)`;
+
+    // Update gallery next folder button state
+    const btnNextGal = document.getElementById('btnNextFolderGallery');
+    if (btnNextGal) {
+      const nextFolder = this.getNextFolder();
+      if (!nextFolder) {
+        btnNextGal.style.display = 'none';
+      } else {
+        btnNextGal.style.display = 'inline-flex';
+        if (annotated >= total && total > 0) {
+          btnNextGal.classList.add('btn-primary');
+          btnNextGal.classList.remove('btn-secondary');
+        } else {
+          btnNextGal.classList.remove('btn-primary');
+          btnNextGal.classList.add('btn-secondary');
+        }
+      }
+    }
+  }
+
+  getFirstPendingIndex() {
+    if (!this.folderData || !this.folderData.images || this.folderData.images.length === 0) return 0;
+    const idx = this.folderData.images.findIndex(img => !this.folderData.poses[img]);
+    return idx >= 0 ? idx : 0;
+  }
+
+  isFolderComplete() {
+    if (!this.folderData || !this.folderData.images || this.folderData.images.length === 0) return false;
+    const total = this.folderData.images.length;
+    const annotated = Object.keys(this.folderData.poses).filter(
+      (img) => !img.startsWith('_folder_') && this.folderData.images.includes(img)
+    ).length;
+    return annotated >= total && total > 0;
+  }
+
+  getNextFolder() {
+    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return null;
+    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
+    if (currentIdx >= 0 && currentIdx + 1 < this.folders.length) {
+      return this.folders[currentIdx + 1];
+    }
+    return null;
+  }
+
+  getPrevFolder() {
+    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return null;
+    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
+    if (currentIdx > 0) {
+      return this.folders[currentIdx - 1];
+    }
+    return null;
+  }
+
+  async moveToNextFolder() {
+    this.cancelAutoAdvance();
+
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+      await this.saveCurrentPose();
+    }
+
+    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return;
+
+    // Update current folder status in memory
+    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
+    if (currentIdx >= 0 && this.folderData) {
+      const total = this.folderData.images.length;
+      const annotated = Object.keys(this.folderData.poses).filter(
+        (img) => !img.startsWith('_folder_') && this.folderData.images.includes(img)
+      ).length;
+      this.folders[currentIdx].annotated_count = annotated;
+      this.folders[currentIdx].is_complete = annotated >= total && total > 0;
+      this.renderFolderDropdown();
+    }
+
+    const nextFolder = this.getNextFolder();
+    if (!nextFolder) {
+      // Reached the end folder!
+      this.showAllFoldersCompletedModal();
+      return;
+    }
+
+    this.showToast(`Moving to next photoshoot: ${nextFolder.rel_path}...`, 1800, 'info');
+    await this.selectFolder(nextFolder, true);
+  }
+
+  async moveToPrevFolder() {
+    this.cancelAutoAdvance();
+
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+      await this.saveCurrentPose();
+    }
+
+    const prevFolder = this.getPrevFolder();
+    if (!prevFolder) {
+      this.showToast('Already at the first folder.', 1500, 'info');
+      return;
+    }
+
+    this.showToast(`Loading previous photoshoot: ${prevFolder.rel_path}...`, 1500, 'info');
+    await this.selectFolder(prevFolder, false);
+  }
+
+  checkFolderCompletion() {
+    if (!this.folderData) return;
+    const isComplete = this.isFolderComplete();
+    const isLastPhoto = this.currentImageIndex >= this.folderData.images.length - 1;
+
+    // If all photos in this folder are annotated, and user is on the last photo:
+    if (isComplete && isLastPhoto) {
+      const nextFolder = this.getNextFolder();
+      if (!nextFolder) {
+        this.showAllFoldersCompletedModal();
+        return;
+      }
+      this.startAutoAdvance(nextFolder);
+    }
+  }
+
+  startAutoAdvance(nextFolder) {
+    if (!this.completeBanner) return;
+    if (this.autoAdvanceTimer) clearInterval(this.autoAdvanceTimer);
+
+    let remainingSeconds = 2;
+    if (this.completeCountdown) this.completeCountdown.textContent = remainingSeconds;
+    if (this.completeBannerTitle) {
+      this.completeBannerTitle.textContent = `Photoshoot Complete! (${this.folderData.images.length}/${this.folderData.images.length})`;
+    }
+    if (this.completeBannerDesc) {
+      this.completeBannerDesc.innerHTML = `Advancing to <strong>${nextFolder.rel_path}</strong> in <span id="completeCountdown">${remainingSeconds}</span>s...`;
+    }
+
+    this.completeBanner.style.display = 'flex';
+
+    this.autoAdvanceTimer = setInterval(() => {
+      remainingSeconds--;
+      const cdEl = document.getElementById('completeCountdown');
+      if (cdEl) cdEl.textContent = remainingSeconds;
+
+      if (remainingSeconds <= 0) {
+        this.cancelAutoAdvance();
+        this.moveToNextFolder();
+      }
+    }, 1000);
+  }
+
+  cancelAutoAdvance() {
+    if (this.autoAdvanceTimer) {
+      clearInterval(this.autoAdvanceTimer);
+      this.autoAdvanceTimer = null;
+    }
+    if (this.completeBanner) {
+      this.completeBanner.style.display = 'none';
+    }
+  }
+
+  advanceNow() {
+    this.cancelAutoAdvance();
+    this.moveToNextFolder();
+  }
+
+  showAllFoldersCompletedModal() {
+    const existing = document.getElementById('allFoldersCompleteModal');
+    if (existing) existing.remove();
+
+    const totalFolders = this.folders ? this.folders.length : 0;
+    const modalHtml = `
+      <div id="allFoldersCompleteModal" class="folder-setup-overlay active">
+        <div class="folder-setup-dialog" style="text-align: center; max-width: 480px; padding: 32px 28px;">
+          <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 16px;">🎉</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #f8fafc; margin-bottom: 10px;">
+            All Folders Completed!
+          </h2>
+          <p style="color: #94a3b8; font-size: 0.92rem; line-height: 1.55; margin-bottom: 24px;">
+            You have reached the end of all <strong style="color:#818cf8;">${totalFolders} photoshoot folders</strong>. Every image has been processed!
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-primary btn-lg" onclick="document.getElementById('allFoldersCompleteModal').remove(); window.app?.closeModal();">
+              ⊞ View Comprehensive Gallery
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  updateNavigationButtons() {
+    if (!this.folderData || !this.folderData.images) return;
+    const isLastImage = this.currentImageIndex >= this.folderData.images.length - 1;
+    const nextFolder = this.getNextFolder();
+
+    const btnNext = document.getElementById('btnNext');
+    const btnNextDock = document.getElementById('btnNextDock');
+
+    if (isLastImage) {
+      if (nextFolder) {
+        if (btnNext) {
+          btnNext.innerHTML = `Next Folder → <span class="kbd-hint">Enter</span>`;
+          btnNext.title = `Finish folder & advance to next photoshoot (Enter)`;
+          btnNext.classList.add('next-folder-btn');
+        }
+        if (btnNextDock) {
+          btnNextDock.innerHTML = `Finish & Next Folder → <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>`;
+          btnNextDock.title = `Finish folder & advance to next photoshoot (Enter)`;
+          btnNextDock.classList.add('btn-finish-folder');
+        }
+      } else {
+        if (btnNext) {
+          btnNext.innerHTML = `Finish All ✓ <span class="kbd-hint">Enter</span>`;
+          btnNext.classList.remove('next-folder-btn');
+        }
+        if (btnNextDock) {
+          btnNextDock.innerHTML = `Finish All Folders ✓ <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>`;
+          btnNextDock.classList.remove('btn-finish-folder');
+        }
+      }
+    } else {
+      if (btnNext) {
+        btnNext.innerHTML = `Next <span class="kbd-hint">→</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+        btnNext.title = 'Next Image (→ Arrow or Enter)';
+        btnNext.classList.remove('next-folder-btn');
+      }
+      if (btnNextDock) {
+        btnNextDock.innerHTML = `Save & Next Photo → <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>`;
+        btnNextDock.title = 'Save and go to next photo (Enter)';
+        btnNextDock.classList.remove('btn-finish-folder');
+      }
+    }
+  }
+
+  showToast(msg, duration = 2000, type = 'info') {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'appToast';
+      toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background: rgba(15, 23, 42, 0.95);
+        color: #f8fafc;
+        border: 1px solid #6366f1;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        padding: 8px 18px;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        pointer-events: none;
+        backdrop-filter: blur(10px);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        opacity: 0;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    if (this._toastTimeout) clearTimeout(this._toastTimeout);
+    this._toastTimeout = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    }, duration);
   }
 
   renderGallery() {
@@ -744,9 +1109,12 @@ class App {
     if (!this.activeState.bbox) {
       this.autoDetectBBox(true);
     }
+
+    this.updateNavigationButtons();
   }
 
   async closeModal() {
+    this.cancelAutoAdvance();
     this.modal.classList.remove('active');
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
@@ -759,6 +1127,7 @@ class App {
 
   async prevImage() {
     if (!this.folderData) return;
+    this.cancelAutoAdvance();
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
       this.saveTimeout = null;
@@ -770,12 +1139,32 @@ class App {
 
   async nextImage() {
     if (!this.folderData) return;
+    this.cancelAutoAdvance();
+
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
       this.saveTimeout = null;
       await this.saveCurrentPose();
     }
-    const newIdx = (this.currentImageIndex + 1) % this.folderData.images.length;
+
+    if (this.currentImageIndex >= this.folderData.images.length - 1) {
+      const isComplete = this.isFolderComplete();
+      const pendingIdx = this.getFirstPendingIndex();
+
+      if (isComplete) {
+        await this.moveToNextFolder();
+        return;
+      } else if (pendingIdx >= 0 && pendingIdx !== this.currentImageIndex) {
+        this.showToast(`Jumping to pending photo ${pendingIdx + 1} of ${this.folderData.images.length}`, 1500, 'info');
+        this.openModal(pendingIdx);
+        return;
+      } else {
+        await this.moveToNextFolder();
+        return;
+      }
+    }
+
+    const newIdx = this.currentImageIndex + 1;
     this.openModal(newIdx);
   }
 
@@ -884,6 +1273,9 @@ class App {
       const res = await API.savePose(this.folderData.folder_path, imgName, this.activeState);
       this.folderData.poses[imgName] = res.pose;
       this.setSaveStatus('saved');
+      this.updateFolderStats();
+      this.updateNavigationButtons();
+      this.checkFolderCompletion();
     } catch (err) {
       console.error('Error saving pose:', err);
       this.setSaveStatus('error');

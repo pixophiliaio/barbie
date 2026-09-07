@@ -125,6 +125,9 @@
         <span id="galleryCount" class="gallery-count">(0 photos)</span>
       </div>
       <div class="gallery-actions">
+        <button id="btnNextFolderGallery" class="btn btn-secondary btn-sm" onclick="window.app?.moveToNextFolder()" title="Advance to Next Photoshoot Folder (N or ])">
+          Next Folder ⏭ <span class="kbd-hint">N</span>
+        </button>
         <button id="btnOpenVisualizer" class="btn btn-primary btn-sm" title="Open 3-Panel Visualizer Studio (V)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -345,9 +348,26 @@
         <button id="btnSameAsPrevDock" class="btn btn-secondary btn-sm" style="background:#312e81; border-color:#6366f1; color:white; font-weight:600;" onclick="window.app?.sameAsPrevious()" title="Same as Previous (S)">
           ⎘ Same as Previous <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">S</span>
         </button>
-        <button class="btn btn-primary" onclick="window.app?.nextImage()" title="Save and go to next photo (Enter)">
+        <button id="btnNextDock" class="btn btn-primary" onclick="window.app?.nextImage()" title="Save and go to next photo (Enter)">
           Save & Next Photo →
           <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Completion Floating Banner -->
+    <div id="folderCompleteBanner" class="folder-complete-banner" style="display: none;">
+      <div class="complete-banner-icon">🎉</div>
+      <div class="complete-banner-text">
+        <strong id="completeBannerTitle">Photoshoot Complete! (15/15)</strong>
+        <span id="completeBannerDesc">Advancing to next folder in <span id="completeCountdown">2</span>s...</span>
+      </div>
+      <div class="complete-banner-actions">
+        <button id="btnAdvanceNow" class="btn btn-primary btn-sm" onclick="window.app?.advanceNow()">
+          Next Folder Now → <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
+        </button>
+        <button id="btnCancelAdvance" class="btn btn-secondary btn-sm" onclick="window.app?.cancelAutoAdvance()">
+          Stay Here <span class="kbd-hint">Esc</span>
         </button>
       </div>
     </div>
@@ -384,11 +404,11 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Model Gender:</label>
             <div class="setup-segmented gender-setup">
-              <button type="button" class="setup-segment-btn active male" data-setup-gender="male">
-                ♂ Male (Nathan)
+              <button type="button" class="setup-segment-btn active male" data-setup-gender="male" onclick="window.app?.setSetupGender('male')">
+                ♂ Male (Nathan) <span class="kbd-hint" style="background:rgba(255,255,255,0.2); color:white;">M</span>
               </button>
-              <button type="button" class="setup-segment-btn female" data-setup-gender="female">
-                ♀ Female (Sophia)
+              <button type="button" class="setup-segment-btn female" data-setup-gender="female" onclick="window.app?.setSetupGender('female')">
+                ♀ Female (Sophia) <span class="kbd-hint" style="background:rgba(255,255,255,0.2); color:white;">F</span>
               </button>
             </div>
           </div>
@@ -397,9 +417,9 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Top Garment Fit:</label>
             <div class="setup-segmented">
-              <button type="button" class="setup-segment-btn" data-setup-top="loose">Loose</button>
-              <button type="button" class="setup-segment-btn active" data-setup-top="regular">Regular</button>
-              <button type="button" class="setup-segment-btn" data-setup-top="tight">Tight</button>
+              <button type="button" class="setup-segment-btn" data-setup-top="loose" onclick="window.app?.setSetupTopFit('loose')">Loose <span class="kbd-hint">1</span></button>
+              <button type="button" class="setup-segment-btn active" data-setup-top="regular" onclick="window.app?.setSetupTopFit('regular')">Regular <span class="kbd-hint">2</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-top="tight" onclick="window.app?.setSetupTopFit('tight')">Tight <span class="kbd-hint">3</span></button>
             </div>
           </div>
 
@@ -407,9 +427,9 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Bottom Garment Fit:</label>
             <div class="setup-segmented">
-              <button type="button" class="setup-segment-btn" data-setup-btm="loose">Loose</button>
-              <button type="button" class="setup-segment-btn active" data-setup-btm="regular">Regular</button>
-              <button type="button" class="setup-segment-btn" data-setup-btm="tight">Tight</button>
+              <button type="button" class="setup-segment-btn" data-setup-btm="loose" onclick="window.app?.setSetupBottomFit('loose')">Loose <span class="kbd-hint">4</span></button>
+              <button type="button" class="setup-segment-btn active" data-setup-btm="regular" onclick="window.app?.setSetupBottomFit('regular')">Regular <span class="kbd-hint">5</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-btm="tight" onclick="window.app?.setSetupBottomFit('tight')">Tight <span class="kbd-hint">6</span></button>
             </div>
           </div>
 
