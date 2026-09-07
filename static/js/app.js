@@ -99,12 +99,24 @@ class App {
     });
     // Setup Modal Elements
     this.setupModal = document.getElementById('folderSetupModal');
+    this.setupPreviewCard = document.getElementById('setupPreviewCard');
     this.setupPreviewImg = document.getElementById('setupPreviewImg');
     this.setupPreviewName = document.getElementById('setupPreviewName');
     this.setupFolderLabel = document.getElementById('setupFolderLabel');
     this.btnConfirmSetup = document.getElementById('btnConfirmSetup');
     this.btnSkipSetup = document.getElementById('btnSkipSetup');
     this.btnOpenSetupModal = document.getElementById('btnOpenSetupModal');
+
+    // Setup Zoom Overlay Elements
+    this.setupZoomOverlay = document.getElementById('setupZoomOverlay');
+    this.setupZoomImg = document.getElementById('setupZoomImg');
+    this.setupZoomImgName = document.getElementById('setupZoomImgName');
+    this.setupZoomBody = document.getElementById('setupZoomBody');
+    this.btnCloseSetupZoom = document.getElementById('btnCloseSetupZoom');
+    this.btnToggleZoomFit = document.getElementById('btnToggleZoomFit');
+
+    this.currentSetupFirstImgPath = null;
+    this.currentSetupFirstImgName = null;
 
     this.setupGender = 'male';
     this.setupTopFit = 'regular';
@@ -113,6 +125,23 @@ class App {
     this.btnConfirmSetup?.addEventListener('click', () => this.confirmFolderSetup());
     this.btnSkipSetup?.addEventListener('click', () => this.closeFolderSetup(false));
     this.btnOpenSetupModal?.addEventListener('click', () => this.openFolderSetup());
+
+    // Click on preview card opens high-resolution zoom
+    this.setupPreviewCard?.addEventListener('click', () => this.openSetupZoom());
+    this.btnCloseSetupZoom?.addEventListener('click', () => this.closeSetupZoom());
+    this.btnToggleZoomFit?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSetupZoomFit();
+    });
+    this.setupZoomImg?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSetupZoomFit();
+    });
+    this.setupZoomBody?.addEventListener('click', (e) => {
+      if (e.target === this.setupZoomBody) {
+        this.closeSetupZoom();
+      }
+    });
 
     document.querySelectorAll('[data-setup-gender]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -245,9 +274,23 @@ class App {
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+      // If setup preview zoom overlay is active, handle zoom shortcuts
+      if (this.setupZoomOverlay && this.setupZoomOverlay.classList.contains('active')) {
+        if (e.key === 'Escape' || e.key.toLowerCase() === 'z' || e.key === ' ') {
+          e.preventDefault();
+          this.closeSetupZoom();
+          return;
+        }
+        return;
+      }
+
       // If folder setup modal is active, handle setup shortcuts
       if (this.setupModal && this.setupModal.classList.contains('active')) {
-        if (e.key === 'Enter') {
+        if (e.key.toLowerCase() === 'z' || e.key === ' ') {
+          e.preventDefault();
+          this.openSetupZoom();
+          return;
+        } else if (e.key === 'Enter') {
           e.preventDefault();
           this.confirmFolderSetup();
           return;
@@ -584,6 +627,8 @@ class App {
     if (this.folderData.images && this.folderData.images.length > 0) {
       const firstImg = this.folderData.images[0];
       const fullPath = `${this.folderData.folder_path}/${firstImg}`;
+      this.currentSetupFirstImgPath = fullPath;
+      this.currentSetupFirstImgName = firstImg;
       if (this.setupPreviewName) this.setupPreviewName.textContent = firstImg;
       if (this.setupPreviewImg) this.setupPreviewImg.src = API.getThumbUrl(fullPath, 500);
     }
@@ -591,7 +636,41 @@ class App {
     this.setupModal?.classList.add('active');
   }
 
+  openSetupZoom() {
+    if (!this.currentSetupFirstImgPath) return;
+    if (this.setupZoomImg) {
+      this.setupZoomImg.src = API.getImageUrl(this.currentSetupFirstImgPath);
+      this.setupZoomImg.classList.add('fit');
+      this.setupZoomImg.classList.remove('actual-size');
+    }
+    if (this.btnToggleZoomFit) {
+      this.btnToggleZoomFit.textContent = '100% Zoom';
+    }
+    if (this.setupZoomImgName) {
+      this.setupZoomImgName.textContent = this.currentSetupFirstImgName || 'First Photo Preview';
+    }
+    this.setupZoomOverlay?.classList.add('active');
+  }
+
+  closeSetupZoom() {
+    this.setupZoomOverlay?.classList.remove('active');
+  }
+
+  toggleSetupZoomFit() {
+    if (!this.setupZoomImg) return;
+    if (this.setupZoomImg.classList.contains('fit')) {
+      this.setupZoomImg.classList.remove('fit');
+      this.setupZoomImg.classList.add('actual-size');
+      if (this.btnToggleZoomFit) this.btnToggleZoomFit.textContent = 'Fit Window';
+    } else {
+      this.setupZoomImg.classList.remove('actual-size');
+      this.setupZoomImg.classList.add('fit');
+      if (this.btnToggleZoomFit) this.btnToggleZoomFit.textContent = '100% Zoom';
+    }
+  }
+
   async confirmFolderSetup() {
+    this.closeSetupZoom();
     this.folderDefaults.gender = this.setupGender;
     this.folderDefaults.top_fit = this.setupTopFit;
     this.folderDefaults.bottom_fit = this.setupBottomFit;
@@ -616,6 +695,7 @@ class App {
   }
 
   closeFolderSetup(confirmed = false) {
+    this.closeSetupZoom();
     this.setupModal?.classList.remove('active');
     if (!confirmed && this.folderData) {
       this.folderData.defaults_confirmed = true;

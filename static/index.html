@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Body & Image Pose Visualizer</title>
   <meta name="description" content="Visualizer and annotation studio for fashion photoshoot catalogues, bounding box extraction, 3D body rotation alignment, and dual-slider anatomical pose framing.">
-  <link rel="stylesheet" href="/static/css/style.css?v=20260907_2">
-  <link rel="stylesheet" href="/static/css/visualizer.css?v=20260907_2">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260907_3">
+  <link rel="stylesheet" href="/static/css/visualizer.css?v=20260907_3">
 </head>
 <body>
 
@@ -386,14 +386,23 @@
       </div>
 
       <div class="folder-setup-content">
-        <!-- Left: First Image Preview -->
-        <div class="setup-preview-card">
+        <!-- Left: First Image Preview (Click to Zoom) -->
+        <div id="setupPreviewCard" class="setup-preview-card" title="Click to view full-resolution photo (Z)">
           <div class="setup-preview-thumb-wrap">
             <img id="setupPreviewImg" src="" alt="First Photo" />
+            <div class="setup-thumb-zoom-hint">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+              <span>Click to Zoom</span>
+            </div>
           </div>
           <div class="setup-preview-info">
             <span id="setupPreviewName" class="setup-preview-name">_1193372.JPG</span>
-            <span class="setup-preview-badge">First Photo</span>
+            <span class="setup-preview-badge">🔍 Zoom (Z)</span>
           </div>
         </div>
 
@@ -448,6 +457,28 @@
     </div>
   </div>
 
+  <!-- Photoshoot Setup Photo Zoom Overlay -->
+  <div id="setupZoomOverlay" class="setup-zoom-overlay">
+    <div class="setup-zoom-header">
+      <div class="setup-zoom-title">
+        <span class="zoom-badge">🔍 Zoom View</span>
+        <span id="setupZoomImgName" class="zoom-img-name">_1193372.JPG</span>
+      </div>
+      <div class="setup-zoom-actions">
+        <button id="btnToggleZoomFit" class="btn btn-secondary btn-sm" title="Toggle between Fit Window and 100% Zoom">
+          100% Zoom
+        </button>
+        <button id="btnCloseSetupZoom" class="btn-close" title="Close Zoom View (Esc or Z)">✕</button>
+      </div>
+    </div>
+    <div class="setup-zoom-body" id="setupZoomBody" title="Click outside to close, or click photo to toggle zoom">
+      <img id="setupZoomImg" src="" alt="Zoomed First Photo" class="setup-zoom-img fit" />
+    </div>
+    <div class="setup-zoom-footer">
+      <span>Click photo to toggle 100% zoom &bull; Click backdrop or press <kbd>Esc</kbd> / <kbd>Z</kbd> to return to setup</span>
+    </div>
+  </div>
+
   <!-- Vendor Scripts -->
   <script src="/static/vendor/three.min.js"></script>
   <script src="/static/vendor/fflate.min.js"></script>
@@ -455,10 +486,10 @@
   <script src="/static/vendor/OrbitControls.js"></script>
 
   <!-- Application Scripts (Cache Busted) -->
-  <script src="/static/js/api.js?v=20260907_2"></script>
-  <script src="/static/js/bbox_canvas.js?v=20260907_2"></script>
-  <script src="/static/js/model_viewer.js?v=20260907_2"></script>
-  <script src="/static/js/frontal_slider.js?v=20260907_2"></script>
-  <script src="/static/js/app.js?v=20260907_2"></script>
+  <script src="/static/js/api.js?v=20260907_3"></script>
+  <script src="/static/js/bbox_canvas.js?v=20260907_3"></script>
+  <script src="/static/js/model_viewer.js?v=20260907_3"></script>
+  <script src="/static/js/frontal_slider.js?v=20260907_3"></script>
+  <script src="/static/js/app.js?v=20260907_3"></script>
 </body>
 </html>
