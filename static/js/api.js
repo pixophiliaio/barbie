@@ -66,6 +66,10 @@ const API = {
     return res.json();
   },
 
+  async detectHumanBBox(imagePath) {
+    return this.detectBBox(imagePath);
+  },
+
   async saveFolderDefaults(folderPath, gender, topFit, bottomFit) {
     const res = await fetch('/api/folder_defaults', {
       method: 'POST',

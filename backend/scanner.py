@@ -35,6 +35,7 @@ def scan_photos_folders(root_dir: str) -> List[Dict[str, Any]]:
             gender = "male"
             top_fit = "regular"
             bottom_fit = "regular"
+            defaults_confirmed = False
 
             if os.path.exists(pose_json_path):
                 try:
@@ -45,6 +46,7 @@ def scan_photos_folders(root_dir: str) -> List[Dict[str, Any]]:
                         gender = pose_data.get("gender", "male")
                         top_fit = pose_data.get("top_fit", "regular")
                         bottom_fit = pose_data.get("bottom_fit", "regular")
+                        defaults_confirmed = bool(pose_data.get("defaults_confirmed", False))
                         
                         img_dict = pose_data.get("images", {})
                         if not img_dict:
@@ -76,7 +78,8 @@ def scan_photos_folders(root_dir: str) -> List[Dict[str, Any]]:
                 "sample_images": images[:5],
                 "gender": gender,
                 "top_fit": top_fit,
-                "bottom_fit": bottom_fit
+                "bottom_fit": bottom_fit,
+                "defaults_confirmed": defaults_confirmed
             })
 
     # Sort results by rel_path

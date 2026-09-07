@@ -145,10 +145,11 @@ class App {
     document.getElementById('btnAdvanceNow')?.addEventListener('click', () => this.advanceNow());
     document.getElementById('btnCancelAdvance')?.addEventListener('click', () => this.cancelAutoAdvance());
     document.getElementById('btnNextFolderGallery')?.addEventListener('click', () => this.moveToNextFolder());
+    
+    document.getElementById('btnPrev')?.addEventListener('click', () => this.prevImage());
+    document.getElementById('btnPrevDock')?.addEventListener('click', () => this.prevImage());
+    document.getElementById('btnNext')?.addEventListener('click', () => this.nextImage());
     document.getElementById('btnNextDock')?.addEventListener('click', () => this.nextImage());
-
-    document.getElementById('btnPrev').addEventListener('click', () => this.prevImage());
-    document.getElementById('btnNext').addEventListener('click', () => this.nextImage());
 
     // Same as Previous Buttons
     document.getElementById('btnSameAsPrev')?.addEventListener('click', () => this.sameAsPrevious());
@@ -678,18 +679,36 @@ class App {
     return annotated >= total && total > 0;
   }
 
+  getCurrentFolderIndex() {
+    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return -1;
+    const curPath = (this.currentFolder.path || '').replace(/[\\/]+$/, '');
+    const curRel = this.currentFolder.rel_path || '';
+    let idx = this.folders.findIndex(f => {
+      const fPath = (f.path || '').replace(/[\\/]+$/, '');
+      return (curPath && fPath === curPath) || (curRel && f.rel_path === curRel);
+    });
+    if (idx === -1 && this.folderData && this.folderData.folder_path) {
+      const fdPath = this.folderData.folder_path.replace(/[\\/]+$/, '');
+      idx = this.folders.findIndex(f => (f.path || '').replace(/[\\/]+$/, '') === fdPath);
+    }
+    return idx;
+  }
+
   getNextFolder() {
-    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return null;
-    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
+    if (!this.folders || this.folders.length === 0) return null;
+    const currentIdx = this.getCurrentFolderIndex();
     if (currentIdx >= 0 && currentIdx + 1 < this.folders.length) {
       return this.folders[currentIdx + 1];
+    }
+    if (currentIdx === -1 && this.folders.length > 0) {
+      return this.folders[0];
     }
     return null;
   }
 
   getPrevFolder() {
-    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return null;
-    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
+    if (!this.folders || this.folders.length === 0) return null;
+    const currentIdx = this.getCurrentFolderIndex();
     if (currentIdx > 0) {
       return this.folders[currentIdx - 1];
     }
@@ -697,56 +716,70 @@ class App {
   }
 
   async moveToNextFolder() {
-    this.cancelAutoAdvance();
+    if (this._isNavigatingFolder) return;
+    this._isNavigatingFolder = true;
 
-    if (this.saveTimeout) {
-      clearTimeout(this.saveTimeout);
-      this.saveTimeout = null;
-      await this.saveCurrentPose();
+    try {
+      this.cancelAutoAdvance();
+
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = null;
+        await this.saveCurrentPose();
+      }
+
+      if (!this.folders || this.folders.length === 0) return;
+
+      // Update current folder status in memory
+      const currentIdx = this.getCurrentFolderIndex();
+      if (currentIdx >= 0 && this.folderData) {
+        const total = this.folderData.images?.length || 0;
+        const annotated = Object.keys(this.folderData.poses || {}).filter(
+          (img) => !img.startsWith('_folder_') && this.folderData.images.includes(img)
+        ).length;
+        this.folders[currentIdx].annotated_count = annotated;
+        this.folders[currentIdx].is_complete = annotated >= total && total > 0;
+        this.renderFolderDropdown();
+      }
+
+      const nextFolder = this.getNextFolder();
+      if (!nextFolder) {
+        // Reached the end folder!
+        this.showAllFoldersCompletedModal();
+        return;
+      }
+
+      this.showToast(`Moving to next photoshoot: ${nextFolder.rel_path}...`, 1800, 'info');
+      await this.selectFolder(nextFolder, true);
+    } finally {
+      this._isNavigatingFolder = false;
     }
-
-    if (!this.folders || this.folders.length === 0 || !this.currentFolder) return;
-
-    // Update current folder status in memory
-    const currentIdx = this.folders.findIndex(f => f.path === this.currentFolder.path);
-    if (currentIdx >= 0 && this.folderData) {
-      const total = this.folderData.images.length;
-      const annotated = Object.keys(this.folderData.poses).filter(
-        (img) => !img.startsWith('_folder_') && this.folderData.images.includes(img)
-      ).length;
-      this.folders[currentIdx].annotated_count = annotated;
-      this.folders[currentIdx].is_complete = annotated >= total && total > 0;
-      this.renderFolderDropdown();
-    }
-
-    const nextFolder = this.getNextFolder();
-    if (!nextFolder) {
-      // Reached the end folder!
-      this.showAllFoldersCompletedModal();
-      return;
-    }
-
-    this.showToast(`Moving to next photoshoot: ${nextFolder.rel_path}...`, 1800, 'info');
-    await this.selectFolder(nextFolder, true);
   }
 
   async moveToPrevFolder() {
-    this.cancelAutoAdvance();
+    if (this._isNavigatingFolder) return;
+    this._isNavigatingFolder = true;
 
-    if (this.saveTimeout) {
-      clearTimeout(this.saveTimeout);
-      this.saveTimeout = null;
-      await this.saveCurrentPose();
+    try {
+      this.cancelAutoAdvance();
+
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = null;
+        await this.saveCurrentPose();
+      }
+
+      const prevFolder = this.getPrevFolder();
+      if (!prevFolder) {
+        this.showToast('Already at the first folder.', 1500, 'info');
+        return;
+      }
+
+      this.showToast(`Loading previous photoshoot: ${prevFolder.rel_path}...`, 1500, 'info');
+      await this.selectFolder(prevFolder, false);
+    } finally {
+      this._isNavigatingFolder = false;
     }
-
-    const prevFolder = this.getPrevFolder();
-    if (!prevFolder) {
-      this.showToast('Already at the first folder.', 1500, 'info');
-      return;
-    }
-
-    this.showToast(`Loading previous photoshoot: ${prevFolder.rel_path}...`, 1500, 'info');
-    await this.selectFolder(prevFolder, false);
   }
 
   checkFolderCompletion() {
@@ -1126,7 +1159,7 @@ class App {
   }
 
   async prevImage() {
-    if (!this.folderData) return;
+    if (!this.folderData || !this.folderData.images || this.folderData.images.length === 0) return;
     this.cancelAutoAdvance();
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
@@ -1138,34 +1171,31 @@ class App {
   }
 
   async nextImage() {
-    if (!this.folderData) return;
-    this.cancelAutoAdvance();
+    if (!this.folderData || !this.folderData.images) return;
+    if (this._isNavigatingImage) return;
+    this._isNavigatingImage = true;
 
-    if (this.saveTimeout) {
-      clearTimeout(this.saveTimeout);
-      this.saveTimeout = null;
-      await this.saveCurrentPose();
-    }
+    try {
+      this.cancelAutoAdvance();
 
-    if (this.currentImageIndex >= this.folderData.images.length - 1) {
-      const isComplete = this.isFolderComplete();
-      const pendingIdx = this.getFirstPendingIndex();
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = null;
+        await this.saveCurrentPose();
+      }
 
-      if (isComplete) {
-        await this.moveToNextFolder();
-        return;
-      } else if (pendingIdx >= 0 && pendingIdx !== this.currentImageIndex) {
-        this.showToast(`Jumping to pending photo ${pendingIdx + 1} of ${this.folderData.images.length}`, 1500, 'info');
-        this.openModal(pendingIdx);
-        return;
-      } else {
+      if (this.currentImageIndex >= this.folderData.images.length - 1) {
+        // Reached the final photo of this photoshoot!
+        // Finish current folder and seamlessly transition to next photoshoot.
         await this.moveToNextFolder();
         return;
       }
-    }
 
-    const newIdx = this.currentImageIndex + 1;
-    this.openModal(newIdx);
+      const newIdx = this.currentImageIndex + 1;
+      this.openModal(newIdx);
+    } finally {
+      this._isNavigatingImage = false;
+    }
   }
 
   // ⚡ Auto-Detect Human Bounding Box using ultra-fast CPU detector
@@ -1296,7 +1326,11 @@ class App {
   }
 }
 
-// Boot application
-window.addEventListener('DOMContentLoaded', () => {
+// Boot application robustly
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', () => {
+    window.app = new App();
+  });
+} else {
   window.app = new App();
-});
+}

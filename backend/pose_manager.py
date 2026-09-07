@@ -161,7 +161,8 @@ class PoseManager:
                 "bottom": file_data.get("bottom_fit", "regular")
             }),
             "top_fit": file_data.get("top_fit", "regular"),
-            "bottom_fit": file_data.get("bottom_fit", "regular")
+            "bottom_fit": file_data.get("bottom_fit", "regular"),
+            "defaults_confirmed": file_data.get("defaults_confirmed", False)
         }
 
     @classmethod

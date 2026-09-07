@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Body & Image Pose Visualizer</title>
   <meta name="description" content="Visualizer and annotation studio for fashion photoshoot catalogues, bounding box extraction, 3D body rotation alignment, and dual-slider anatomical pose framing.">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/visualizer.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260907_2">
+  <link rel="stylesheet" href="/static/css/visualizer.css?v=20260907_2">
 </head>
 <body>
 
@@ -125,7 +125,7 @@
         <span id="galleryCount" class="gallery-count">(0 photos)</span>
       </div>
       <div class="gallery-actions">
-        <button id="btnNextFolderGallery" class="btn btn-secondary btn-sm" onclick="window.app?.moveToNextFolder()" title="Advance to Next Photoshoot Folder (N or ])">
+        <button id="btnNextFolderGallery" class="btn btn-secondary btn-sm" title="Advance to Next Photoshoot Folder (N or ])">
           Next Folder ⏭ <span class="kbd-hint">N</span>
         </button>
         <button id="btnOpenVisualizer" class="btn btn-primary btn-sm" title="Open 3-Panel Visualizer Studio (V)">
@@ -339,16 +339,16 @@
       </div>
 
       <div class="dock-actions">
-        <button id="btnComprehensiveDock" class="btn btn-secondary btn-sm" onclick="window.app?.closeModal()" title="View All Photos in Comprehensive View (Esc or G)">
+        <button id="btnComprehensiveDock" class="btn btn-secondary btn-sm" title="View All Photos in Comprehensive View (Esc or G)">
           ⊞ All Photos <span class="kbd-hint">Esc</span>
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="window.app?.prevImage()" title="Previous Photo (←)">
+        <button id="btnPrevDock" class="btn btn-secondary btn-sm" title="Previous Photo (←)">
           ← Prev
         </button>
-        <button id="btnSameAsPrevDock" class="btn btn-secondary btn-sm" style="background:#312e81; border-color:#6366f1; color:white; font-weight:600;" onclick="window.app?.sameAsPrevious()" title="Same as Previous (S)">
+        <button id="btnSameAsPrevDock" class="btn btn-secondary btn-sm" style="background:#312e81; border-color:#6366f1; color:white; font-weight:600;" title="Same as Previous (S)">
           ⎘ Same as Previous <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">S</span>
         </button>
-        <button id="btnNextDock" class="btn btn-primary" onclick="window.app?.nextImage()" title="Save and go to next photo (Enter)">
+        <button id="btnNextDock" class="btn btn-primary" title="Save and go to next photo (Enter)">
           Save & Next Photo →
           <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
         </button>
@@ -363,10 +363,10 @@
         <span id="completeBannerDesc">Advancing to next folder in <span id="completeCountdown">2</span>s...</span>
       </div>
       <div class="complete-banner-actions">
-        <button id="btnAdvanceNow" class="btn btn-primary btn-sm" onclick="window.app?.advanceNow()">
+        <button id="btnAdvanceNow" class="btn btn-primary btn-sm">
           Next Folder Now → <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
         </button>
-        <button id="btnCancelAdvance" class="btn btn-secondary btn-sm" onclick="window.app?.cancelAutoAdvance()">
+        <button id="btnCancelAdvance" class="btn btn-secondary btn-sm">
           Stay Here <span class="kbd-hint">Esc</span>
         </button>
       </div>
@@ -404,10 +404,10 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Model Gender:</label>
             <div class="setup-segmented gender-setup">
-              <button type="button" class="setup-segment-btn active male" data-setup-gender="male" onclick="window.app?.setSetupGender('male')">
+              <button type="button" class="setup-segment-btn active male" data-setup-gender="male">
                 ♂ Male (Nathan) <span class="kbd-hint" style="background:rgba(255,255,255,0.2); color:white;">M</span>
               </button>
-              <button type="button" class="setup-segment-btn female" data-setup-gender="female" onclick="window.app?.setSetupGender('female')">
+              <button type="button" class="setup-segment-btn female" data-setup-gender="female">
                 ♀ Female (Sophia) <span class="kbd-hint" style="background:rgba(255,255,255,0.2); color:white;">F</span>
               </button>
             </div>
@@ -417,9 +417,9 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Top Garment Fit:</label>
             <div class="setup-segmented">
-              <button type="button" class="setup-segment-btn" data-setup-top="loose" onclick="window.app?.setSetupTopFit('loose')">Loose <span class="kbd-hint">1</span></button>
-              <button type="button" class="setup-segment-btn active" data-setup-top="regular" onclick="window.app?.setSetupTopFit('regular')">Regular <span class="kbd-hint">2</span></button>
-              <button type="button" class="setup-segment-btn" data-setup-top="tight" onclick="window.app?.setSetupTopFit('tight')">Tight <span class="kbd-hint">3</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-top="loose">Loose <span class="kbd-hint">1</span></button>
+              <button type="button" class="setup-segment-btn active" data-setup-top="regular">Regular <span class="kbd-hint">2</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-top="tight">Tight <span class="kbd-hint">3</span></button>
             </div>
           </div>
 
@@ -427,9 +427,9 @@
           <div class="setup-field-group">
             <label class="setup-field-label">Bottom Garment Fit:</label>
             <div class="setup-segmented">
-              <button type="button" class="setup-segment-btn" data-setup-btm="loose" onclick="window.app?.setSetupBottomFit('loose')">Loose <span class="kbd-hint">4</span></button>
-              <button type="button" class="setup-segment-btn active" data-setup-btm="regular" onclick="window.app?.setSetupBottomFit('regular')">Regular <span class="kbd-hint">5</span></button>
-              <button type="button" class="setup-segment-btn" data-setup-btm="tight" onclick="window.app?.setSetupBottomFit('tight')">Tight <span class="kbd-hint">6</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-btm="loose">Loose <span class="kbd-hint">4</span></button>
+              <button type="button" class="setup-segment-btn active" data-setup-btm="regular">Regular <span class="kbd-hint">5</span></button>
+              <button type="button" class="setup-segment-btn" data-setup-btm="tight">Tight <span class="kbd-hint">6</span></button>
             </div>
           </div>
 
@@ -454,11 +454,11 @@
   <script src="/static/vendor/FBXLoader.js"></script>
   <script src="/static/vendor/OrbitControls.js"></script>
 
-  <!-- Application Scripts -->
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/bbox_canvas.js"></script>
-  <script src="/static/js/model_viewer.js"></script>
-  <script src="/static/js/frontal_slider.js"></script>
-  <script src="/static/js/app.js"></script>
+  <!-- Application Scripts (Cache Busted) -->
+  <script src="/static/js/api.js?v=20260907_2"></script>
+  <script src="/static/js/bbox_canvas.js?v=20260907_2"></script>
+  <script src="/static/js/model_viewer.js?v=20260907_2"></script>
+  <script src="/static/js/frontal_slider.js?v=20260907_2"></script>
+  <script src="/static/js/app.js?v=20260907_2"></script>
 </body>
 </html>
