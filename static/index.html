@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Body & Image Pose Visualizer</title>
+  <meta name="description" content="Visualizer and annotation studio for fashion photoshoot catalogues, bounding box extraction, 3D body rotation alignment, and dual-slider anatomical pose framing.">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/visualizer.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="logo-badge">3D</div>
+        <div>
+          <h1 class="brand-title">Pose & Body Visualizer</h1>
+          <div class="brand-subtitle">Fashion Shoot Visualizer & 3D Fitting Annotator</div>
+        </div>
+      </div>
+
+      <!-- Root Scan Controls -->
+      <div class="path-controls">
+        <div class="input-group">
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <input 
+            type="text" 
+            id="rootPathInput" 
+            class="path-input" 
+            placeholder="Enter directory path (e.g. /path/to/photos or ../.../PHOTOS)"
+            value="/Users/uttkarsh/Desktop/wrkspce2/hawkeye/test_dataset"
+          />
+        </div>
+        <button id="btnScan" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Scan Folders
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-header / Discovered PHOTOS dropdown & Folder Garment Setup -->
+    <div class="sub-header">
+      <div class="folder-select-container">
+        <span class="folder-label">Folder:</span>
+        <select id="folderSelectDropdown" class="folder-dropdown">
+          <option value="">Scanning directory...</option>
+        </select>
+        <span id="folderStatsBadge" class="folder-stats-badge">
+          0 / 0 Annotated
+        </span>
+      </div>
+
+      <!-- Folder-Level Garment & Model Setup (Applied once for the whole folder!) -->
+      <div class="folder-defaults-toolbar">
+        <span class="folder-defaults-title">
+          <span>👔 Folder Setup:</span>
+        </span>
+
+        <!-- Gender -->
+        <div class="dock-group" style="padding: 3px 8px;">
+          <span class="dock-label" style="font-size:0.72rem;">Gender:</span>
+          <div class="segmented-control gender-control">
+            <button type="button" class="segment-btn active male" data-gender-toggle="male" style="padding: 3px 8px; font-size: 0.75rem;">
+              ♂ Male (Nathan)
+            </button>
+            <button type="button" class="segment-btn female" data-gender-toggle="female" style="padding: 3px 8px; font-size: 0.75rem;">
+              ♀ Female (Sophia)
+            </button>
+          </div>
+        </div>
+
+        <!-- Top Fit -->
+        <div class="dock-group" style="padding: 3px 8px;">
+          <span class="dock-label" style="font-size:0.72rem;">Top:</span>
+          <div class="segmented-control">
+            <button type="button" class="segment-btn" data-top-fit-toggle="loose" style="padding: 3px 8px; font-size: 0.75rem;">
+              Loose
+            </button>
+            <button type="button" class="segment-btn active" data-top-fit-toggle="regular" style="padding: 3px 8px; font-size: 0.75rem;">
+              Regular
+            </button>
+            <button type="button" class="segment-btn" data-top-fit-toggle="tight" style="padding: 3px 8px; font-size: 0.75rem;">
+              Tight
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Fit -->
+        <div class="dock-group" style="padding: 3px 8px;">
+          <span class="dock-label" style="font-size:0.72rem;">Bottom:</span>
+          <div class="segmented-control">
+            <button type="button" class="segment-btn" data-btm-fit-toggle="loose" style="padding: 3px 8px; font-size: 0.75rem;">
+              Loose
+            </button>
+            <button type="button" class="segment-btn active" data-btm-fit-toggle="regular" style="padding: 3px 8px; font-size: 0.75rem;">
+              Regular
+            </button>
+            <button type="button" class="segment-btn" data-btm-fit-toggle="tight" style="padding: 3px 8px; font-size: 0.75rem;">
+              Tight
+            </button>
+          </div>
+        </div>
+
+        <button id="btnOpenSetupModal" type="button" class="btn btn-secondary btn-sm" style="padding: 3px 10px; font-size: 0.75rem;" title="Configure Photoshoot Fits & Gender">
+          ⚙ Edit Setup
+        </button>
+      </div>
+    </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container / Gallery Grid View -->
+  <main class="main-container">
+    <div class="gallery-header">
+      <div class="gallery-title">
+        <span id="galleryTitle">PHOTOS Gallery</span>
+        <span id="galleryCount" class="gallery-count">(0 photos)</span>
+      </div>
+      <div class="gallery-actions">
+        <button id="btnOpenVisualizer" class="btn btn-primary btn-sm" title="Open 3-Panel Visualizer Studio (V)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+          ▶ Open 3-Panel Visualizer <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">V</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="state-container" style="display: none;">
+      <div class="state-icon">📁</div>
+      <h2 class="state-title">No PHOTOS Directory Selected</h2>
+      <p class="state-desc">Enter a root path above and click Scan Folders to find all PHOTOS folders in the hierarchy.</p>
+    </div>
+
+    <!-- Gallery Grid of all images in PHOTOS -->
+    <div id="galleryGrid" class="gallery-grid"></div>
+  </main>
+
+  <!-- 3-Panel Visualizer Studio Modal -->
+  <div id="visualizerModal" class="visualizer-overlay">
+    
+    <!-- Modal Header -->
+    <div class="visualizer-header">
+      <div class="header-left">
+        <div class="header-title-group">
+          <div id="activeImageName" class="active-image-name">_1193372.JPG</div>
+          <div id="activeImageIndex" class="active-image-index">Photo 1 of 15</div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <button id="btnPrev" class="nav-btn" title="Previous Image (← Arrow)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Prev <span class="kbd-hint">←</span>
+        </button>
+        <button id="btnSameAsPrev" class="nav-btn" style="background:#4338ca; color:white; border-color:#6366f1; font-weight:600;" title="Copy annotation from previous photo (S)">
+          ⎘ Same as Previous <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">S</span>
+        </button>
+        <button id="btnNext" class="nav-btn" title="Next Image (→ Arrow or Enter)">
+          Next <span class="kbd-hint">→</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header-right">
+        <div id="saveStatusIndicator" class="save-status-indicator">
+          <span class="status-dot"></span> Saved to pose.json
+        </div>
+        <button id="btnComprehensiveView" class="btn btn-secondary btn-sm" title="Back to Comprehensive All View (Esc or G)" style="display:inline-flex; align-items:center; gap:6px; font-weight:600; border-color:rgba(255,255,255,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          ⊞ Comprehensive View <span class="kbd-hint">Esc</span>
+        </button>
+        <button id="btnCloseModal" class="btn-close" title="Close (Esc)">✕</button>
+      </div>
+    </div>
+
+    <!-- 3-Panel Body -->
+    <div class="visualizer-body">
+      
+      <!-- Panel 1: Original Image & Bounding Box Canvas -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>1. Original Photo</span>
+            <span class="panel-badge">Draw BBox</span>
+          </div>
+          <div class="bbox-actions">
+            <button id="btnAutoDetect" class="btn btn-primary btn-sm" title="Auto-Detect Human Bounding Box (A)">⚡ Auto-Detect <span class="kbd-hint">A</span></button>
+            <button id="btnFullSubject" class="btn btn-secondary btn-sm" title="Fit Entire Subject">Full</button>
+            <button id="btnClearBBox" class="btn btn-secondary btn-sm" title="Clear Bounding Box (C)">Clear</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="canvas-wrapper">
+            <img id="origImageDisplay" src="" alt="Original Photo" />
+            <canvas id="bboxOverlayCanvas"></canvas>
+          </div>
+        </div>
+        <div id="bboxReadout" class="panel-footer-readout">
+          <span>No Bounding Box</span>
+        </div>
+      </div>
+
+      <!-- Panel 2: Interactive 3D Model Rotation Viewport -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>2. 3D Body Rotation</span>
+            <span class="panel-badge">Drag to Rotate</span>
+          </div>
+          <div id="angleValueBadge" class="angle-value-badge">0° - Front</div>
+        </div>
+        <div class="panel-content">
+          <div id="threeCanvasContainer"></div>
+
+          <!-- 3D Overlaid Controls -->
+          <div class="three-overlay-controls">
+            <div class="angle-row">
+              <span class="angle-label">Azimuth Angle:</span>
+              <input id="angleSlider" type="range" class="angle-slider-input" min="0" max="360" step="1" value="0" />
+            </div>
+            <div class="cardinal-buttons">
+              <button class="cardinal-btn" data-angle="0">Front 0°</button>
+              <button class="cardinal-btn" data-angle="45">3/4 R 45°</button>
+              <button class="cardinal-btn" data-angle="90">Right 90°</button>
+              <button class="cardinal-btn" data-angle="180">Back 180°</button>
+              <button class="cardinal-btn" data-angle="270">Left 270°</button>
+              <button class="cardinal-btn" data-angle="315">3/4 L 315°</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-footer-readout">
+          <span>Drag horizontally on 3D model to rotate body axis</span>
+        </div>
+      </div>
+
+      <!-- Panel 3: Frontal Pose Head-to-Toe with Dual Sliders -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>3. Frontal Pose & Sliders</span>
+            <span class="panel-badge">Head to Toe</span>
+          </div>
+          <div class="slider-presets-row">
+            <button class="preset-btn" data-preset="full">Full (0-100%)</button>
+            <button class="preset-btn" data-preset="34">3/4</button>
+            <button class="preset-btn" data-preset="upper">Upper</button>
+            <button class="preset-btn" data-preset="torso">Torso</button>
+            <button class="preset-btn" data-preset="lower">Lower</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="framingBadge" class="framing-badge">
+            <span>⚡ Framing:</span> <strong>Full Body</strong>
+          </div>
+          <div id="frontalViewContainer" class="frontal-view-container">
+            <img id="frontalPoseImg" src="/static/models/nathan/frontal_dark.png" alt="Frontal 3D Pose" />
+          </div>
+        </div>
+        <div class="panel-footer-readout">
+          <span>Drag Top & Bottom slider lines to crop body region</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Control Dock -->
+    <div class="visualizer-footer">
+      <div class="dock-section">
+        
+        <!-- Folder Gender Toggle -->
+        <div class="dock-group">
+          <span class="dock-label">Gender:</span>
+          <div class="segmented-control gender-control">
+            <button type="button" class="segment-btn active male" data-gender-toggle="male" title="Folder Gender: Male (M)">
+              ♂ Male <span class="kbd-hint">M</span>
+            </button>
+            <button type="button" class="segment-btn female" data-gender-toggle="female" title="Folder Gender: Female (F)">
+              ♀ Female <span class="kbd-hint">F</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Folder Top Fit -->
+        <div class="dock-group">
+          <span class="dock-label">Top Fit:</span>
+          <div class="segmented-control">
+            <button type="button" class="segment-btn" data-top-fit-toggle="loose" title="Folder Top Fit: Loose (1)">
+              Loose <span class="kbd-hint">1</span>
+            </button>
+            <button type="button" class="segment-btn active" data-top-fit-toggle="regular" title="Folder Top Fit: Regular (2)">
+              Regular <span class="kbd-hint">2</span>
+            </button>
+            <button type="button" class="segment-btn" data-top-fit-toggle="tight" title="Folder Top Fit: Tight (3)">
+              Tight <span class="kbd-hint">3</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Folder Bottom Fit -->
+        <div class="dock-group">
+          <span class="dock-label">Bottom Fit:</span>
+          <div class="segmented-control">
+            <button type="button" class="segment-btn" data-btm-fit-toggle="loose" title="Folder Bottom Fit: Loose (4)">
+              Loose <span class="kbd-hint">4</span>
+            </button>
+            <button type="button" class="segment-btn active" data-btm-fit-toggle="regular" title="Folder Bottom Fit: Regular (5)">
+              Regular <span class="kbd-hint">5</span>
+            </button>
+            <button type="button" class="segment-btn" data-btm-fit-toggle="tight" title="Folder Bottom Fit: Tight (6)">
+              Tight <span class="kbd-hint">6</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="dock-actions">
+        <button id="btnComprehensiveDock" class="btn btn-secondary btn-sm" onclick="window.app?.closeModal()" title="View All Photos in Comprehensive View (Esc or G)">
+          ⊞ All Photos <span class="kbd-hint">Esc</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="window.app?.prevImage()" title="Previous Photo (←)">
+          ← Prev
+        </button>
+        <button id="btnSameAsPrevDock" class="btn btn-secondary btn-sm" style="background:#312e81; border-color:#6366f1; color:white; font-weight:600;" onclick="window.app?.sameAsPrevious()" title="Same as Previous (S)">
+          ⎘ Same as Previous <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">S</span>
+        </button>
+        <button class="btn btn-primary" onclick="window.app?.nextImage()" title="Save and go to next photo (Enter)">
+          Save & Next Photo →
+          <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Photoshoot Folder Setup Modal (Prompt when a new photos folder starts) -->
+  <div id="folderSetupModal" class="folder-setup-overlay">
+    <div class="folder-setup-dialog">
+      <div class="folder-setup-header">
+        <div class="folder-setup-badge">👔 Photoshoot Setup</div>
+        <h2 class="folder-setup-title">Tag Garment Fits & Model Gender</h2>
+        <p class="folder-setup-desc">
+          Set default attributes for <strong id="setupFolderLabel">this photoshoot</strong>. These will apply across this photos folder.
+        </p>
+      </div>
+
+      <div class="folder-setup-content">
+        <!-- Left: First Image Preview -->
+        <div class="setup-preview-card">
+          <div class="setup-preview-thumb-wrap">
+            <img id="setupPreviewImg" src="" alt="First Photo" />
+          </div>
+          <div class="setup-preview-info">
+            <span id="setupPreviewName" class="setup-preview-name">_1193372.JPG</span>
+            <span class="setup-preview-badge">First Photo</span>
+          </div>
+        </div>
+
+        <!-- Right: Fit & Gender Selectors -->
+        <div class="setup-fields">
+          
+          <!-- Gender -->
+          <div class="setup-field-group">
+            <label class="setup-field-label">Model Gender:</label>
+            <div class="setup-segmented gender-setup">
+              <button type="button" class="setup-segment-btn active male" data-setup-gender="male">
+                ♂ Male (Nathan)
+              </button>
+              <button type="button" class="setup-segment-btn female" data-setup-gender="female">
+                ♀ Female (Sophia)
+              </button>
+            </div>
+          </div>
+
+          <!-- Top Fit -->
+          <div class="setup-field-group">
+            <label class="setup-field-label">Top Garment Fit:</label>
+            <div class="setup-segmented">
+              <button type="button" class="setup-segment-btn" data-setup-top="loose">Loose</button>
+              <button type="button" class="setup-segment-btn active" data-setup-top="regular">Regular</button>
+              <button type="button" class="setup-segment-btn" data-setup-top="tight">Tight</button>
+            </div>
+          </div>
+
+          <!-- Bottom Fit -->
+          <div class="setup-field-group">
+            <label class="setup-field-label">Bottom Garment Fit:</label>
+            <div class="setup-segmented">
+              <button type="button" class="setup-segment-btn" data-setup-btm="loose">Loose</button>
+              <button type="button" class="setup-segment-btn active" data-setup-btm="regular">Regular</button>
+              <button type="button" class="setup-segment-btn" data-setup-btm="tight">Tight</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="folder-setup-footer">
+        <button id="btnSkipSetup" class="btn btn-secondary">
+          Skip / Use Defaults
+        </button>
+        <button id="btnConfirmSetup" class="btn btn-primary btn-lg">
+          Confirm & Start Annotating →
+          <span class="kbd-hint" style="background:rgba(255,255,255,0.25); color:white;">Enter</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Scripts -->
+  <script src="/static/vendor/three.min.js"></script>
+  <script src="/static/vendor/fflate.min.js"></script>
+  <script src="/static/vendor/FBXLoader.js"></script>
+  <script src="/static/vendor/OrbitControls.js"></script>
+
+  <!-- Application Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/bbox_canvas.js"></script>
+  <script src="/static/js/model_viewer.js"></script>
+  <script src="/static/js/frontal_slider.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
