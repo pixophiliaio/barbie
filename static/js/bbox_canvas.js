@@ -18,7 +18,7 @@ class BBoxCanvas {
     this.initialBbox = null;
 
     this.handleRadius = 6;
-    this.handleMargin = 10;
+    this.handleMargin = 12;
 
     this.initEvents();
   }
@@ -209,13 +209,15 @@ class BBoxCanvas {
         norm_x2: newX1 + w,
         norm_y2: newY1 + h
       };
-    } else {
-      // Resize handle
+    } else if (this.dragMode.startsWith('resize-')) {
+      // Resize handle: extract direction suffix ('tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r')
+      const handle = this.dragMode.substring(7);
       let { norm_x1, norm_y1, norm_x2, norm_y2 } = this.initialBbox;
-      if (this.dragMode.includes('t')) norm_y1 = Math.min(norm_y2 - 0.01, Math.max(0, norm_y1 + deltaNormY));
-      if (this.dragMode.includes('b')) norm_y2 = Math.max(norm_y1 + 0.01, Math.min(1, norm_y2 + deltaNormY));
-      if (this.dragMode.includes('l')) norm_x1 = Math.min(norm_x2 - 0.01, Math.max(0, norm_x1 + deltaNormX));
-      if (this.dragMode.includes('r')) norm_x2 = Math.max(norm_x1 + 0.01, Math.min(1, norm_x2 + deltaNormX));
+
+      if (handle.includes('t')) norm_y1 = Math.min(norm_y2 - 0.01, Math.max(0, norm_y1 + deltaNormY));
+      if (handle.includes('b')) norm_y2 = Math.max(norm_y1 + 0.01, Math.min(1, norm_y2 + deltaNormY));
+      if (handle.includes('l')) norm_x1 = Math.min(norm_x2 - 0.01, Math.max(0, norm_x1 + deltaNormX));
+      if (handle.includes('r')) norm_x2 = Math.max(norm_x1 + 0.01, Math.min(1, norm_x2 + deltaNormX));
 
       this.bbox = { norm_x1, norm_y1, norm_x2, norm_y2 };
     }
