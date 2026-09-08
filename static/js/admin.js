@@ -50,7 +50,34 @@ class AdminApp {
 
   async init() {
     this.bindEvents();
-    await this.discoverModels();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryPath = urlParams.get('path')?.trim();
+    const savedPath = localStorage.getItem('barbie_admin_model_path')?.trim() ||
+                      localStorage.getItem('barbie_active_path')?.trim();
+    const initialPath = queryPath || savedPath || '';
+
+    if (initialPath) {
+      this.modelPathInput.value = initialPath;
+      this.updateAnnotatorLink(initialPath);
+      await this.loadModelOrDiscover(initialPath);
+    } else {
+      this.modelPathInput.value = '';
+      this.modelSelect.innerHTML = '<option value="">Enter path above to load models...</option>';
+      this.showEmptyState();
+      this.updateAnnotatorLink('');
+    }
+  }
+
+  updateAnnotatorLink(path) {
+    const link = document.getElementById('linkToAnnotator');
+    if (!link) return;
+    const target = path || this.currentGarment?.photos_path || this.currentModelPath;
+    if (target) {
+      link.href = `/?path=${encodeURIComponent(target)}`;
+    } else {
+      link.href = '/';
+    }
   }
 
   bindEvents() {
@@ -93,12 +120,105 @@ class AdminApp {
     });
   }
 
-  async discoverModels() {
+  handleLoadInput() {
+    const p = this.modelPathInput?.value.trim();
+    if (p) {
+      this.loadModelOrDiscover(p);
+    } else {
+      this.showEmptyState();
+    }
+  }
+
+  async loadModelOrDiscover(inputPath) {
+    if (!inputPath || !inputPath.trim()) {
+      this.showEmptyState();
+      return;
+    }
+    const cleanPath = inputPath.trim();
+    this.modelPathInput.value = cleanPath;
+
+    // Check if the path ends in /photos or /PHOTOS (e.g. passed from annotator photos folder)
+    let candidateModelPath = cleanPath;
+    const normalized = cleanPath.replace(/[/\\]+$/, '');
+    const parts = normalized.split(/[/\\]/);
+    if (parts.length >= 3 && parts[parts.length - 1].toLowerCase() === 'photos') {
+      // e.g. ... / model_name / garment_name / photos -> model is 2 levels up
+      candidateModelPath = parts.slice(0, parts.length - 2).join('/');
+    } else if (parts.length >= 2 && parts[parts.length - 1].toLowerCase() === 'photos') {
+      candidateModelPath = parts.slice(0, parts.length - 1).join('/');
+    }
+
+    // Try loading candidateModelPath as a model directly
     try {
+      const res = await fetch('/api/admin/model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_path: candidateModelPath })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.garments && data.garments.length > 0) {
+          this.currentModelPath = candidateModelPath;
+          this.modelData = data;
+          this.updateModelBanner();
+          this.renderGarmentsGrid(data.garments);
+          this.showSection('garments');
+          this.updateAnnotatorLink(candidateModelPath);
+          localStorage.setItem('barbie_admin_model_path', candidateModelPath);
+          localStorage.setItem('barbie_active_path', candidateModelPath);
+
+          // Populate siblings dropdown
+          this.discoverSiblings(candidateModelPath);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Direct model load attempt error:', e);
+    }
+
+    // If direct model load didn't find garments, it might be a root/dataset folder containing multiple models
+    try {
+      const scanRes = await fetch('/api/admin/scan_models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: cleanPath })
+      });
+
+      if (scanRes.ok) {
+        const scanData = await scanRes.json();
+        if (scanData.models && scanData.models.length > 0) {
+          this.modelSelect.innerHTML = '<option value="">-- Discovered Models --</option>';
+          scanData.models.forEach((m) => {
+            const opt = document.createElement('option');
+            opt.value = m.model_path;
+            opt.textContent = `${m.rel_path} (${m.garment_count} garments)`;
+            this.modelSelect.appendChild(opt);
+          });
+
+          const first = scanData.models[0];
+          this.modelSelect.value = first.model_path;
+          await this.loadModel(first.model_path);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Dataset scan attempt error:', e);
+    }
+
+    this.showEmptyState('No models or garment photoshoot folders found at the specified path.');
+  }
+
+  async discoverSiblings(modelPath) {
+    if (!modelPath) return;
+    try {
+      const lastSlash = Math.max(modelPath.lastIndexOf('/'), modelPath.lastIndexOf('\\'));
+      if (lastSlash <= 0) return;
+      const parentDir = modelPath.substring(0, lastSlash);
       const res = await fetch('/api/admin/scan_models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: '' })
+        body: JSON.stringify({ path: parentDir })
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -110,36 +230,27 @@ class AdminApp {
           opt.textContent = `${m.rel_path} (${m.garment_count} garments)`;
           this.modelSelect.appendChild(opt);
         });
-
-        // Auto load first model if input is empty
-        if (!this.modelPathInput.value) {
-          const first = data.models[0];
-          this.modelPathInput.value = first.model_path;
-          this.modelSelect.value = first.model_path;
-          this.loadModel(first.model_path);
-        }
-      } else {
-        this.modelSelect.innerHTML = '<option value="">No models detected</option>';
+        this.modelSelect.value = modelPath;
       }
-    } catch (err) {
-      console.warn('Error discovering models:', err);
+    } catch (e) {
+      console.warn('Sibling discovery error:', e);
     }
   }
 
-  handleLoadInput() {
-    const p = this.modelPathInput?.value.trim();
-    if (p) this.loadModel(p);
-  }
-
   async loadModel(modelPath) {
-    if (!modelPath) return;
-    this.currentModelPath = modelPath;
+    if (!modelPath || !modelPath.trim()) return;
+    const cleanPath = modelPath.trim();
+    this.currentModelPath = cleanPath;
+    this.modelPathInput.value = cleanPath;
+    this.updateAnnotatorLink(cleanPath);
+    localStorage.setItem('barbie_admin_model_path', cleanPath);
+    localStorage.setItem('barbie_active_path', cleanPath);
 
     try {
       const res = await fetch('/api/admin/model', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model_path: modelPath })
+        body: JSON.stringify({ model_path: cleanPath })
       });
 
       if (!res.ok) {
@@ -152,10 +263,30 @@ class AdminApp {
       this.updateModelBanner();
       this.renderGarmentsGrid(this.modelData.garments || []);
       this.showSection('garments');
+      this.discoverSiblings(cleanPath);
     } catch (err) {
       console.error('Failed to load model:', err);
       alert('Error scanning model directory: ' + err.message);
     }
+  }
+
+  showEmptyState(customMsg) {
+    const msg = customMsg || 'Enter a model folder path or dataset path above and click "Load Model" to review garment photoshoot statuses.';
+    if (this.garmentsGrid) {
+      this.garmentsGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2.8rem; margin-bottom: 14px; opacity: 0.8;">📁</div>
+          <div style="font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--text-main);">No Model Directory Loaded</div>
+          <div style="font-size: 0.88rem; max-width: 460px; line-height: 1.5;">${msg}</div>
+        </div>
+      `;
+    }
+    if (this.modelTitle) this.modelTitle.textContent = 'No Model Selected';
+    if (this.modelBreadcrumb) this.modelBreadcrumb.textContent = 'Path: None';
+    if (this.statGarmentsCount) this.statGarmentsCount.textContent = '0';
+    if (this.statCompletedCount) this.statCompletedCount.textContent = '0';
+    if (this.statPhotosCount) this.statPhotosCount.textContent = '0';
+    if (this.statAnnotatedCount) this.statAnnotatedCount.textContent = '0';
   }
 
   updateModelBanner() {
@@ -244,6 +375,7 @@ class AdminApp {
 
   async openComprehensiveView(garment) {
     this.currentGarment = garment;
+    this.updateAnnotatorLink(garment.photos_path);
     this.showSection('comprehensive');
 
     if (this.compGarmentTitle) {
@@ -501,6 +633,7 @@ class AdminApp {
 
   backToGarments() {
     this.showSection('garments');
+    this.updateAnnotatorLink(this.currentModelPath);
     // Refresh model data to ensure all counts/progress stay up to date
     if (this.currentModelPath) {
       this.loadModel(this.currentModelPath);

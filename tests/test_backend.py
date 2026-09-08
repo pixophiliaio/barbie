@@ -189,6 +189,13 @@ class TestBackend(unittest.TestCase):
         # img2 is pending (not annotated)
         self.assertNotIn("img2.jpg", details["poses"])
 
+    def test_empty_scan_returns_empty(self):
+        from backend.app import api_scan, ScanRequest
+        res = api_scan(ScanRequest(path=""))
+        self.assertEqual(res["total_folders"], 0)
+        self.assertEqual(res["folders"], [])
+        self.assertEqual(res["root"], "")
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -2,7 +2,7 @@
 
 class App {
   constructor() {
-    this.rootPath = '/Users/uttkarsh/Desktop/wrkspce2/hawkeye/test_dataset';
+    this.rootPath = '';
     this.folders = [];
     this.currentFolder = null;
     this.folderData = null; // { folder_path, images, poses, defaults }
@@ -43,8 +43,8 @@ class App {
     this.initComponents();
     this.initShortcuts();
 
-    // Auto-scan default path on boot
-    this.scan(this.rootPath);
+    // Check URL params (?path=...) and localStorage without assuming default path
+    this.initPathAndState();
   }
 
   initDOM() {
@@ -369,12 +369,78 @@ class App {
     });
   }
 
+  initPathAndState() {
+    // 1. Check URL query params (?path=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryPath = urlParams.get('path')?.trim();
+
+    // 2. Check localStorage
+    const savedPath = localStorage.getItem('barbie_annotator_path')?.trim() || 
+                      localStorage.getItem('barbie_active_path')?.trim();
+
+    const initialPath = queryPath || savedPath || '';
+
+    if (initialPath) {
+      this.rootPath = initialPath;
+      if (this.pathInput) this.pathInput.value = initialPath;
+      this.updateAdminLink(initialPath);
+      this.scan(initialPath);
+    } else {
+      this.rootPath = '';
+      if (this.pathInput) this.pathInput.value = '';
+      if (this.emptyState) this.emptyState.style.display = 'flex';
+      if (this.galleryGrid) this.galleryGrid.innerHTML = '';
+      if (this.folderBadge) this.folderBadge.textContent = 'No directory loaded';
+      if (this.folderDropdown) this.folderDropdown.innerHTML = '<option value="">No directory loaded</option>';
+      this.updateAdminLink('');
+    }
+  }
+
+  deriveModelPath() {
+    if (this.currentFolder?.path) {
+      const normalized = this.currentFolder.path.replace(/[/\\]+$/, '');
+      const parts = normalized.split(/[/\\]/);
+      if (parts.length >= 3 && parts[parts.length - 1].toLowerCase() === 'photos') {
+        return parts.slice(0, parts.length - 2).join('/');
+      } else if (parts.length >= 2 && parts[parts.length - 1].toLowerCase() === 'photos') {
+        return parts.slice(0, parts.length - 1).join('/');
+      }
+      return this.currentFolder.path;
+    }
+    return this.rootPath || '';
+  }
+
+  updateAdminLink(path) {
+    const link = document.getElementById('linkToAdmin');
+    if (!link) return;
+    const target = path || this.deriveModelPath();
+    if (target) {
+      link.href = `/admin?path=${encodeURIComponent(target)}`;
+    } else {
+      link.href = '/admin';
+    }
+  }
+
   async scan(path) {
-    if (!path) return;
-    this.pathInput.value = path;
+    if (!path || !path.trim()) {
+      this.folders = [];
+      this.renderFolderDropdown();
+      if (this.emptyState) this.emptyState.style.display = 'flex';
+      if (this.galleryGrid) this.galleryGrid.innerHTML = '';
+      if (this.folderBadge) this.folderBadge.textContent = 'No directory loaded';
+      this.updateAdminLink('');
+      return;
+    }
+    const cleanPath = path.trim();
+    this.rootPath = cleanPath;
+    this.pathInput.value = cleanPath;
+    localStorage.setItem('barbie_annotator_path', cleanPath);
+    localStorage.setItem('barbie_active_path', cleanPath);
+    this.updateAdminLink(cleanPath);
+
     this.btnScan.textContent = 'Scanning...';
     try {
-      const res = await API.scanDirectory(path);
+      const res = await API.scanDirectory(cleanPath);
       this.folders = res.folders || [];
       this.renderFolderDropdown();
       if (this.folders.length > 0) {
@@ -390,6 +456,7 @@ class App {
       alert(`Scan error: ${err.message}`);
     } finally {
       this.btnScan.textContent = 'Scan Folders';
+      this.updateAdminLink();
     }
   }
 
@@ -397,6 +464,10 @@ class App {
     if (!this.folderDropdown) return;
     const currentVal = this.currentFolder?.path || this.folderDropdown.value;
     this.folderDropdown.innerHTML = '';
+    if (this.folders.length === 0) {
+      this.folderDropdown.innerHTML = '<option value="">No folders found</option>';
+      return;
+    }
     for (const f of this.folders) {
       const opt = document.createElement('option');
       opt.value = f.path;
@@ -413,6 +484,11 @@ class App {
     this.cancelAutoAdvance();
     this.currentFolder = folder;
     if (this.folderDropdown) this.folderDropdown.value = folder.path;
+    this.updateAdminLink();
+    const modelPath = this.deriveModelPath();
+    if (modelPath) {
+      localStorage.setItem('barbie_active_path', modelPath);
+    }
 
     try {
       const details = await API.getFolderDetails(folder.path);

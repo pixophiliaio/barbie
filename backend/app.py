@@ -79,7 +79,11 @@ def health():
 def api_scan(req: ScanRequest):
     root_path = req.path.strip()
     if not root_path:
-        root_path = str(BASE_DIR)
+        return {
+            "root": "",
+            "total_folders": 0,
+            "folders": []
+        }
     
     resolved = Path(root_path).expanduser().resolve()
     if not resolved.exists():
@@ -219,11 +223,11 @@ def api_admin_model(req: AdminModelRequest):
 def api_admin_scan_models(req: ScanRequest):
     root_path = req.path.strip()
     if not root_path:
-        hawkeye_dataset = Path("/Users/uttkarsh/Desktop/wrkspce2/hawkeye/test_dataset")
-        if hawkeye_dataset.exists() and hawkeye_dataset.is_dir():
-            root_path = str(hawkeye_dataset)
-        else:
-            root_path = str(BASE_DIR)
+        return {
+            "root": "",
+            "total_models": 0,
+            "models": []
+        }
 
     resolved = Path(root_path).expanduser().resolve()
     if not resolved.exists():

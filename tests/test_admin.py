@@ -114,6 +114,12 @@ class TestAdmin(unittest.TestCase):
         g2 = next(g for g in res4["garments"] if g["garment_name"] == "garment_pants")
         self.assertTrue(g2["is_complete"])
 
+    def test_empty_admin_scan_returns_empty(self):
+        res = api_admin_scan_models(ScanRequest(path=""))
+        self.assertEqual(res["total_models"], 0)
+        self.assertEqual(res["models"], [])
+        self.assertEqual(res["root"], "")
+
 
 if __name__ == "__main__":
     unittest.main()
