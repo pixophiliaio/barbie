@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Visualizer | Barbie Photoshoot Review</title>
+  <meta name="description" content="Admin overview for photoshoot models, garment completion status, and comprehensive read-only review." />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260907_6" />
+  <link rel="stylesheet" href="/static/css/admin.css?v=20260908_1" />
+</head>
+<body>
+
+  <!-- Admin Top Navigation Header -->
+  <header class="admin-header">
+    <div class="admin-nav-bar">
+      
+      <!-- Brand -->
+      <a href="/admin" class="admin-brand">
+        <div class="logo-badge">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="admin-brand-title">Barbie Visualizer</div>
+        </div>
+        <span class="admin-badge">Admin Review</span>
+      </a>
+
+      <!-- Model Path Input Bar -->
+      <div class="admin-search-bar">
+        <input
+          id="adminModelPath"
+          type="text"
+          class="admin-path-input"
+          placeholder="Enter model folder path (e.g. base/date1/model_name)..."
+        />
+        <select id="adminModelSelect" class="admin-model-select">
+          <option value="">Scanning models...</option>
+        </select>
+        <button id="btnLoadModel" class="btn btn-primary btn-sm">
+          Load Model
+        </button>
+      </div>
+
+      <!-- Link to Annotator Studio -->
+      <div class="header-actions">
+        <a href="/" class="btn btn-secondary btn-sm" title="Switch to Annotator Studio">
+          ✏️ Annotator Studio
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Model Summary Banner -->
+  <section class="model-summary-banner">
+    <div class="banner-header">
+      <div class="model-title-group">
+        <h1 id="modelTitle">Select a Model Directory</h1>
+        <div id="modelBreadcrumb" class="model-path-breadcrumb">No model loaded yet</div>
+      </div>
+    </div>
+
+    <!-- Stats Ribbon -->
+    <div class="stats-ribbon">
+      <div class="stat-widget">
+        <span class="stat-label">Garment Types</span>
+        <span id="statGarmentsCount" class="stat-value">0</span>
+        <span class="stat-subtext">photoshoots found</span>
+      </div>
+      <div class="stat-widget">
+        <span class="stat-label">Completed Garments</span>
+        <span id="statCompletedCount" class="stat-value" style="color:#10b981;">0 / 0</span>
+        <span class="stat-subtext">flagged complete</span>
+      </div>
+      <div class="stat-widget">
+        <span class="stat-label">Total Photos</span>
+        <span id="statPhotosCount" class="stat-value">0</span>
+        <span class="stat-subtext">across all garments</span>
+      </div>
+      <div class="stat-widget">
+        <span class="stat-label">Annotated Photos</span>
+        <span id="statAnnotatedCount" class="stat-value" style="color:#6366f1;">0 / 0</span>
+        <span class="stat-subtext">in pose.json</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="admin-container">
+
+    <!-- PAGE 1: Garments Overview Grid -->
+    <section id="garmentsSection" class="view-section active">
+      <div class="garments-section-header">
+        <h2 class="garments-section-title">
+          👔 Garment Types & Completion Status
+        </h2>
+        <span style="font-size:0.85rem; color:var(--text-muted);">
+          Click any garment card to inspect comprehensive photos
+        </span>
+      </div>
+
+      <!-- Garments Grid -->
+      <div id="garmentsGrid" class="garments-grid">
+        <div style="grid-column: 1/-1; padding: 48px; text-align: center; color: var(--text-muted);">
+          <h3>Loading garment shoots...</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: Comprehensive Review View -->
+    <section id="comprehensiveSection" class="view-section">
+      
+      <!-- Top Navigation & Summary -->
+      <div class="comprehensive-header">
+        <div class="comprehensive-nav-group">
+          <button id="btnBackToGarments" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+            ← Back to Garments <span class="kbd-hint">Esc</span>
+          </button>
+          <div class="comprehensive-title-wrap">
+            <h2 id="compGarmentTitle">Garment Photos</h2>
+            <div id="compGarmentMeta" class="garment-tags" style="margin-top:4px;"></div>
+          </div>
+        </div>
+
+        <div class="comprehensive-actions">
+          <span id="compStatusBadge" class="garment-status-pill pending">● Status</span>
+          <button id="btnToggleFolderComplete" class="btn btn-secondary btn-sm" title="Toggle completion flag in pose.json">
+            Mark as Completed
+          </button>
+        </div>
+      </div>
+
+      <!-- Comprehensive Photos Grid (Read-Only) -->
+      <div id="comprehensivePhotosGrid" class="photos-gallery-grid"></div>
+
+    </section>
+
+  </main>
+
+  <!-- Read-Only Photo Inspection Modal -->
+  <div id="inspectionModal" class="inspection-modal-overlay">
+    <div class="inspection-dialog">
+      
+      <!-- Header -->
+      <div class="inspection-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <h3 id="inspectPhotoName" style="font-family:var(--font-mono); font-size:1.05rem;">photo.jpg</h3>
+          <span id="inspectPhotoIndex" class="panel-badge">Photo 1 of 12</span>
+          <span class="panel-badge" style="background:rgba(16,185,129,0.15); color:#10b981; border-color:rgba(16,185,129,0.3);">Read-Only Review</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button id="btnInspectPrev" class="nav-btn" title="Previous Photo (←)">
+            Prev <span class="kbd-hint">←</span>
+          </button>
+          <button id="btnInspectNext" class="nav-btn" title="Next Photo (→)">
+            Next <span class="kbd-hint">→</span>
+          </button>
+          <button id="btnCloseInspection" class="btn-close" title="Close (Esc)">✕</button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="inspection-body">
+        
+        <!-- Photo Stage with BBox Overlay -->
+        <div class="inspection-stage">
+          <div class="inspection-stage-wrapper">
+            <img id="inspectImg" src="" alt="Inspection Photo" />
+            <div id="inspectBBoxOverlay" style="position:absolute; inset:0; pointer-events:none;"></div>
+          </div>
+        </div>
+
+        <!-- Metadata Sidebar -->
+        <div class="inspection-sidebar">
+          
+          <div class="inspection-sidebar-group">
+            <span class="inspection-label">3D Body Rotation</span>
+            <div id="inspectAngleVal" class="inspection-value-badge">0° (Front)</div>
+          </div>
+
+          <div class="inspection-sidebar-group">
+            <span class="inspection-label">Framing & Dual Sliders</span>
+            <div id="inspectSlidersVal" class="inspection-value-badge">Full Body</div>
+          </div>
+
+          <div class="inspection-sidebar-group">
+            <span class="inspection-label">Garment Fits</span>
+            <div id="inspectFitsVal" class="inspection-value-badge">Top: Regular | Bottom: Regular</div>
+          </div>
+
+          <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border-subtle); color:var(--text-dim); font-size:0.75rem;">
+            🔒 Annotations are in review mode. Open in Annotator Studio to make edits.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Admin Script -->
+  <script src="/static/js/admin.js?v=20260908_1"></script>
+</body>
+</html>

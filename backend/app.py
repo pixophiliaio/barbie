@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from PIL import Image, ImageOps
 
 
-from .scanner import scan_photos_folders, get_folder_details, is_image_file
+from .scanner import scan_photos_folders, get_folder_details, is_image_file, scan_model_garments, scan_models
 from .pose_manager import PoseManager
 from .detector import detect_human_bbox
 
@@ -63,6 +63,13 @@ class FolderDefaultsRequest(BaseModel):
     top_fit: str
     bottom_fit: str
     gender: Optional[str] = "male"
+
+class AdminModelRequest(BaseModel):
+    model_path: str
+
+class FolderCompleteRequest(BaseModel):
+    folder_path: str
+    is_complete: bool
 
 @app.get("/api/health")
 def health():
@@ -194,8 +201,54 @@ def api_save_pose(req: PoseSaveRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/admin/model")
+def api_admin_model(req: AdminModelRequest):
+    model_path = req.model_path.strip()
+    if not model_path:
+        raise HTTPException(status_code=400, detail="Model path is required")
+    resolved = Path(model_path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_dir():
+        raise HTTPException(status_code=404, detail=f"Model directory not found: {model_path}")
+    try:
+        data = scan_model_garments(str(resolved))
+        return {"status": "success", **data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/scan_models")
+def api_admin_scan_models(req: ScanRequest):
+    root_path = req.path.strip()
+    if not root_path:
+        hawkeye_dataset = Path("/Users/uttkarsh/Desktop/wrkspce2/hawkeye/test_dataset")
+        if hawkeye_dataset.exists() and hawkeye_dataset.is_dir():
+            root_path = str(hawkeye_dataset)
+        else:
+            root_path = str(BASE_DIR)
+
+    resolved = Path(root_path).expanduser().resolve()
+    if not resolved.exists():
+        raise HTTPException(status_code=400, detail=f"Path does not exist: {root_path}")
+    models = scan_models(str(resolved))
+    return {
+        "root": str(resolved),
+        "total_models": len(models),
+        "models": models
+    }
+
+@app.post("/api/folder/complete")
+def api_set_folder_complete(req: FolderCompleteRequest):
+    try:
+        res = PoseManager.set_folder_completion(req.folder_path, req.is_complete)
+        return {"status": "success", **res}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.api_route("/admin", methods=["GET", "HEAD"])
+def admin_page():
+    return FileResponse(STATIC_DIR / "admin.html")
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def index():

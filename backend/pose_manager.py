@@ -10,6 +10,7 @@ class PoseManager:
     
     Structure:
     {
+      "is_complete": false,
       "fitting": {
         "top": "regular",
         "bottom": "regular"
@@ -43,6 +44,7 @@ class PoseManager:
         pose_path = cls.get_pose_file_path(folder_path)
         if not pose_path.exists():
             return {
+                "is_complete": False,
                 "fitting": {
                     "top": "regular",
                     "bottom": "regular"
@@ -57,6 +59,7 @@ class PoseManager:
                 data = json.load(f)
             if not isinstance(data, dict):
                 return {
+                    "is_complete": False,
                     "fitting": {
                         "top": "regular",
                         "bottom": "regular"
@@ -82,6 +85,7 @@ class PoseManager:
                         images[k] = clean_v
 
                 res = {
+                    "is_complete": bool(data.get("is_complete", False)),
                     "fitting": {
                         "top": top_fit,
                         "bottom": bottom_fit
@@ -105,7 +109,9 @@ class PoseManager:
                     clean_images[k] = {k2: v2 for k2, v2 in v.items() if k2 not in ("gender", "top_fit", "bottom_fit", "fitting")}
 
             defaults_confirmed = bool(data.get("defaults_confirmed", False))
+            is_complete = bool(data.get("is_complete", False))
             res = {
+                "is_complete": is_complete,
                 "fitting": {
                     "top": top_fit,
                     "bottom": bottom_fit
@@ -121,6 +127,7 @@ class PoseManager:
         except Exception as e:
             print(f"Error loading {pose_path}: {e}")
             return {
+                "is_complete": False,
                 "fitting": {
                     "top": "regular",
                     "bottom": "regular"
@@ -158,7 +165,8 @@ class PoseManager:
             }),
             "top_fit": file_data.get("top_fit", "regular"),
             "bottom_fit": file_data.get("bottom_fit", "regular"),
-            "defaults_confirmed": file_data.get("defaults_confirmed", False)
+            "defaults_confirmed": file_data.get("defaults_confirmed", False),
+            "is_complete": file_data.get("is_complete", False)
         }
 
     @classmethod
@@ -208,6 +216,7 @@ class PoseManager:
         file_data["top_fit"] = top_fit
         file_data["bottom_fit"] = bottom_fit
         file_data["defaults_confirmed"] = True
+        file_data["is_complete"] = file_data.get("is_complete", False)
         file_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
 
         # Ensure image entries remain clean of redundant folder-level tags and gender
@@ -232,7 +241,8 @@ class PoseManager:
             },
             "top_fit": top_fit,
             "bottom_fit": bottom_fit,
-            "defaults_confirmed": True
+            "defaults_confirmed": True,
+            "is_complete": file_data["is_complete"]
         }
 
     @classmethod
@@ -282,6 +292,16 @@ class PoseManager:
         }
 
         file_data["images"][image_name] = updated_entry
+
+        # Compute folder completion flag
+        image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif', '.mpo'}
+        all_disk_images = [f for f in os.listdir(folder) if Path(f).suffix.lower() in image_extensions and not f.startswith('.')]
+        if all_disk_images:
+            annotated_count = sum(1 for img in all_disk_images if img in file_data["images"] and isinstance(file_data["images"][img], dict))
+            file_data["is_complete"] = (annotated_count >= len(all_disk_images))
+        else:
+            file_data["is_complete"] = False
+
         file_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
 
         # STRICT: gender is NOT written to pose.json!
@@ -305,10 +325,34 @@ class PoseManager:
             **updated_entry,
             "fitting": file_data["fitting"],
             "top_fit": file_data["top_fit"],
-            "bottom_fit": file_data["bottom_fit"]
+            "bottom_fit": file_data["bottom_fit"],
+            "is_complete": file_data["is_complete"]
         }
         if "gender" in pose_data:
             res["gender"] = pose_data["gender"]
         elif "gender" in file_data:
             res["gender"] = file_data["gender"]
         return res
+
+    @classmethod
+    def set_folder_completion(cls, folder_path: str, is_complete: bool) -> Dict[str, Any]:
+        """Explicitly toggles the completion flag in pose.json."""
+        folder = Path(folder_path).expanduser().resolve()
+        if not folder.exists() or not folder.is_dir():
+            raise ValueError(f"Directory does not exist: {folder_path}")
+
+        pose_path = folder / "pose.json"
+        file_data = cls.load_poses_file(folder_path)
+        file_data["is_complete"] = bool(is_complete)
+        file_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
+
+        # Atomic write
+        tmp_path = folder / "pose.json.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(file_data, f, indent=2, ensure_ascii=False)
+        tmp_path.replace(pose_path)
+
+        return {
+            "folder_path": str(folder),
+            "is_complete": bool(is_complete)
+        }
