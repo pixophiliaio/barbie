@@ -196,6 +196,14 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(res["folders"], [])
         self.assertEqual(res["root"], "")
 
+    def test_normalize_path_wsl(self):
+        from backend.app import normalize_path
+        self.assertEqual(normalize_path(r"C:\Users\test\photos"), "/mnt/c/Users/test/photos")
+        self.assertEqual(normalize_path("D:/datasets/model_01"), "/mnt/d/datasets/model_01")
+        self.assertEqual(normalize_path("/mnt/c/Users/test"), "/mnt/c/Users/test")
+        self.assertEqual(normalize_path("/home/ubuntu/photos"), "/home/ubuntu/photos")
+        self.assertEqual(normalize_path(""), "")
+
 if __name__ == "__main__":
     unittest.main()
 

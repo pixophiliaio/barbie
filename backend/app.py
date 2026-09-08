@@ -47,6 +47,22 @@ def orient_image_vertical(im: Image.Image) -> Image.Image:
     return im
 
 
+def normalize_path(path_str: str) -> str:
+    r"""
+    Normalizes path strings, automatically translating Windows drive paths
+    (e.g., C:\Users\name\... or C:/Users/name/...) into WSL mount paths (/mnt/c/Users/name/...)
+    when running on Linux/WSL.
+    """
+    if not path_str:
+        return ""
+    p = path_str.strip().strip('"').strip("'")
+    if len(p) >= 2 and p[1] == ':' and p[0].isalpha():
+        drive = p[0].lower()
+        rest = p[2:].replace('\\', '/').lstrip('/')
+        return f"/mnt/{drive}/{rest}"
+    return p
+
+
 class ScanRequest(BaseModel):
     path: str
 
@@ -77,7 +93,7 @@ def health():
 
 @app.post("/api/scan")
 def api_scan(req: ScanRequest):
-    root_path = req.path.strip()
+    root_path = normalize_path(req.path.strip())
     if not root_path:
         return {
             "root": "",
@@ -98,7 +114,7 @@ def api_scan(req: ScanRequest):
 
 @app.get("/api/folder")
 def api_get_folder(path: str = Query(...)):
-    folder_path = Path(path).expanduser().resolve()
+    folder_path = Path(normalize_path(path)).expanduser().resolve()
     if not folder_path.exists() or not folder_path.is_dir():
         raise HTTPException(status_code=404, detail="Folder not found")
     
@@ -108,7 +124,7 @@ def api_get_folder(path: str = Query(...)):
 
 @app.post("/api/detect_bbox")
 def api_detect_bbox(req: DetectRequest):
-    img_path = Path(req.path).expanduser().resolve()
+    img_path = Path(normalize_path(req.path)).expanduser().resolve()
     if not img_path.exists() or not img_path.is_file():
         raise HTTPException(status_code=404, detail="Image not found")
     
@@ -121,7 +137,7 @@ def api_detect_bbox(req: DetectRequest):
 def api_save_folder_defaults(req: FolderDefaultsRequest):
     try:
         defaults = PoseManager.save_folder_defaults(
-            folder_path=req.folder_path,
+            folder_path=normalize_path(req.folder_path),
             gender=req.gender,
             top_fit=req.top_fit,
             bottom_fit=req.bottom_fit
@@ -132,7 +148,7 @@ def api_save_folder_defaults(req: FolderDefaultsRequest):
 
 @app.api_route("/api/thumb", methods=["GET", "HEAD"])
 def api_get_thumb(path: str = Query(...), max_dim: int = Query(500)):
-    file_path = Path(path).expanduser().resolve()
+    file_path = Path(normalize_path(path)).expanduser().resolve()
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="Image not found")
     
@@ -158,7 +174,7 @@ def api_get_thumb(path: str = Query(...), max_dim: int = Query(500)):
 
 @app.api_route("/api/image", methods=["GET", "HEAD"])
 def api_get_image(path: str = Query(...)):
-    file_path = Path(path).expanduser().resolve()
+    file_path = Path(normalize_path(path)).expanduser().resolve()
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="Image not found")
     
@@ -197,7 +213,7 @@ def api_get_image(path: str = Query(...)):
 def api_save_pose(req: PoseSaveRequest):
     try:
         updated = PoseManager.save_image_pose(
-            folder_path=req.folder_path,
+            folder_path=normalize_path(req.folder_path),
             image_name=req.image_name,
             pose_data=req.data
         )
@@ -207,7 +223,7 @@ def api_save_pose(req: PoseSaveRequest):
 
 @app.post("/api/admin/model")
 def api_admin_model(req: AdminModelRequest):
-    model_path = req.model_path.strip()
+    model_path = normalize_path(req.model_path.strip())
     if not model_path:
         raise HTTPException(status_code=400, detail="Model path is required")
     resolved = Path(model_path).expanduser().resolve()
@@ -221,7 +237,7 @@ def api_admin_model(req: AdminModelRequest):
 
 @app.post("/api/admin/scan_models")
 def api_admin_scan_models(req: ScanRequest):
-    root_path = req.path.strip()
+    root_path = normalize_path(req.path.strip())
     if not root_path:
         return {
             "root": "",
@@ -242,7 +258,7 @@ def api_admin_scan_models(req: ScanRequest):
 @app.post("/api/folder/complete")
 def api_set_folder_complete(req: FolderCompleteRequest):
     try:
-        res = PoseManager.set_folder_completion(req.folder_path, req.is_complete)
+        res = PoseManager.set_folder_completion(normalize_path(req.folder_path), req.is_complete)
         return {"status": "success", **res}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

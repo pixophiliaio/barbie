@@ -5,10 +5,14 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
 # Select Python environment
-if [ -f "/Users/uttkarsh/Desktop/wrkspce2/.venv/bin/python3" ]; then
-    PYTHON="/Users/uttkarsh/Desktop/wrkspce2/.venv/bin/python3"
-elif [ -n "$VIRTUAL_ENV" ]; then
+if [ -f "$DIR/.venv/bin/python" ]; then
+    PYTHON="$DIR/.venv/bin/python"
+elif [ -f "$DIR/venv/bin/python" ]; then
+    PYTHON="$DIR/venv/bin/python"
+elif [ -n "$VIRTUAL_ENV" ] && [ -f "$VIRTUAL_ENV/bin/python" ]; then
     PYTHON="$VIRTUAL_ENV/bin/python"
+elif [ -f "/Users/uttkarsh/Desktop/wrkspce2/.venv/bin/python3" ]; then
+    PYTHON="/Users/uttkarsh/Desktop/wrkspce2/.venv/bin/python3"
 elif which python3 > /dev/null 2>&1; then
     PYTHON="python3"
 else
@@ -17,12 +21,13 @@ else
 fi
 
 PORT="${PORT:-8000}"
-HOST="${HOST:-127.0.0.1}"
+HOST="${HOST:-0.0.0.0}"
 
 echo "=========================================================="
 echo " Starting 3D Body & Image Pose Visualizer"
-echo " URL: http://${HOST}:${PORT}"
-echo " Python: ${PYTHON}"
+echo " Local URL: http://127.0.0.1:${PORT}"
+echo " Host URL:  http://localhost:${PORT}"
+echo " Python:    ${PYTHON}"
 echo "=========================================================="
 
 exec "$PYTHON" -m uvicorn backend.app:app --host "$HOST" --port "$PORT" --reload
