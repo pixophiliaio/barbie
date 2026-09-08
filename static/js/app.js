@@ -370,9 +370,13 @@ class App {
   }
 
   initPathAndState() {
-    // 1. Check URL query params (?path=...)
+    // 1. Check URL query params (?path=..., ?gender=...)
     const urlParams = new URLSearchParams(window.location.search);
     const queryPath = urlParams.get('path')?.trim();
+    const queryGender = urlParams.get('gender')?.trim();
+    if (queryGender) {
+      localStorage.setItem('barbie_last_gender', queryGender);
+    }
 
     // 2. Check localStorage
     const savedPath = localStorage.getItem('barbie_annotator_path')?.trim() || 
@@ -415,7 +419,8 @@ class App {
     if (!link) return;
     const target = path || this.deriveModelPath();
     if (target) {
-      link.href = `/admin?path=${encodeURIComponent(target)}`;
+      const g = this.folderDefaults?.gender || localStorage.getItem('barbie_last_gender') || 'male';
+      link.href = `/admin?path=${encodeURIComponent(target)}&gender=${encodeURIComponent(g)}`;
     } else {
       link.href = '/admin';
     }
@@ -502,7 +507,22 @@ class App {
           bottom_fit: details.defaults.bottom_fit || 'regular'
         };
       }
+
+      // Restore gender preference from localStorage or model-level memory
+      const effectiveGender = localStorage.getItem(`barbie_gender_${folder.path}`) ||
+                             (modelPath ? localStorage.getItem(`barbie_gender_model_${modelPath}`) : null) ||
+                             (details.defaults?.gender && details.defaults.gender !== 'male' ? details.defaults.gender : null) ||
+                             details.defaults?.gender ||
+                             localStorage.getItem('barbie_last_gender') ||
+                             'male';
+
+      this.folderDefaults.gender = effectiveGender;
+      this.activeState.gender = effectiveGender;
+      this.setupGender = effectiveGender;
       this.updateFolderDefaultsUI();
+
+      this.modelViewer?.setGender(effectiveGender);
+      this.frontalSlider?.setGender(effectiveGender);
 
       this.renderGallery();
       this.updateFolderStats();
@@ -527,7 +547,20 @@ class App {
     if (!gender) return;
     this.folderDefaults.gender = gender;
     this.activeState.gender = gender;
+    this.setupGender = gender;
+
+    // Save gender to localStorage for folder, model, and globally
+    if (this.currentFolder?.path) {
+      localStorage.setItem(`barbie_gender_${this.currentFolder.path}`, gender);
+    }
+    const modelPath = this.deriveModelPath();
+    if (modelPath) {
+      localStorage.setItem(`barbie_gender_model_${modelPath}`, gender);
+    }
+    localStorage.setItem('barbie_last_gender', gender);
+
     this.updateFolderDefaultsUI();
+    this.updateAdminLink();
 
     // Immediately swap 3D model & frontal reference image if modal is active
     if (this.modal && this.modal.classList.contains('active')) {
@@ -622,6 +655,14 @@ class App {
     document.querySelectorAll('[data-setup-gender]').forEach((b) => {
       b.classList.toggle('active', b.dataset.setupGender === gender);
     });
+    if (this.currentFolder?.path) {
+      localStorage.setItem(`barbie_gender_${this.currentFolder.path}`, gender);
+    }
+    const modelPath = this.deriveModelPath();
+    if (modelPath) {
+      localStorage.setItem(`barbie_gender_model_${modelPath}`, gender);
+    }
+    localStorage.setItem('barbie_last_gender', gender);
   }
 
   setSetupTopFit(fit) {
@@ -642,7 +683,14 @@ class App {
   openFolderSetup() {
     if (!this.folderData) return;
 
-    this.setupGender = this.folderDefaults.gender || 'male';
+    const modelPath = this.deriveModelPath();
+    const effectiveGender = localStorage.getItem(`barbie_gender_${this.currentFolder?.path}`) ||
+                           (modelPath ? localStorage.getItem(`barbie_gender_model_${modelPath}`) : null) ||
+                           this.folderDefaults.gender ||
+                           localStorage.getItem('barbie_last_gender') ||
+                           'male';
+
+    this.setupGender = effectiveGender;
     this.setupTopFit = this.folderDefaults.top_fit || 'regular';
     this.setupBottomFit = this.folderDefaults.bottom_fit || 'regular';
 
@@ -682,7 +730,18 @@ class App {
     this.activeState.top_fit = this.setupTopFit;
     this.activeState.bottom_fit = this.setupBottomFit;
 
+    // Save gender to localStorage for folder, model, and globally
+    if (this.currentFolder?.path) {
+      localStorage.setItem(`barbie_gender_${this.currentFolder.path}`, this.setupGender);
+    }
+    const modelPath = this.deriveModelPath();
+    if (modelPath) {
+      localStorage.setItem(`barbie_gender_model_${modelPath}`, this.setupGender);
+    }
+    localStorage.setItem('barbie_last_gender', this.setupGender);
+
     this.updateFolderDefaultsUI();
+    this.updateAdminLink();
 
     this.modelViewer?.setGender(this.setupGender);
     this.frontalSlider?.setGender(this.setupGender);

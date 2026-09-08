@@ -102,19 +102,20 @@ def get_folder_details(folder_path: str) -> Dict[str, Any]:
     file_data = PoseManager.load_poses_file(str(path))
     poses = PoseManager.load_poses(str(path))
 
+    cached_gender = PoseManager.get_cached_gender(str(path))
     return {
         "folder_path": str(path),
         "folder_name": path.name,
         "images": images,
         "total_images": len(images),
-        "gender": file_data.get("gender", "male"),
+        "gender": cached_gender,
         "fitting": file_data["fitting"],
         "top_fit": file_data["top_fit"],
         "bottom_fit": file_data["bottom_fit"],
         "defaults_confirmed": file_data.get("defaults_confirmed", False),
         "is_complete": file_data.get("is_complete", len(images) > 0 and len([k for k in images if k in poses]) == len(images)),
         "defaults": {
-            "gender": file_data.get("gender", "male"),
+            "gender": cached_gender,
             "fitting": file_data["fitting"],
             "top_fit": file_data["top_fit"],
             "bottom_fit": file_data["bottom_fit"],

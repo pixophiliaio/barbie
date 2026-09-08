@@ -42,6 +42,8 @@ class TestMultiFolderFlow(unittest.TestCase):
         self.assertTrue(details["defaults_confirmed"])
         self.assertEqual(details["top_fit"], "loose")
         self.assertEqual(details["bottom_fit"], "tight")
+        self.assertEqual(details["gender"], "female")
+        self.assertEqual(details["defaults"]["gender"], "female")
 
         # Verify raw pose.json does NOT contain gender
         with open(self.folder1 / "pose.json", "r", encoding="utf-8") as f:

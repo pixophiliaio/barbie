@@ -53,6 +53,10 @@ class AdminApp {
 
     const urlParams = new URLSearchParams(window.location.search);
     const queryPath = urlParams.get('path')?.trim();
+    const queryGender = urlParams.get('gender')?.trim();
+    if (queryGender) {
+      localStorage.setItem('barbie_last_gender', queryGender);
+    }
     const savedPath = localStorage.getItem('barbie_admin_model_path')?.trim() ||
                       localStorage.getItem('barbie_active_path')?.trim();
     const initialPath = queryPath || savedPath || '';
@@ -74,7 +78,12 @@ class AdminApp {
     if (!link) return;
     const target = path || this.currentGarment?.photos_path || this.currentModelPath;
     if (target) {
-      link.href = `/?path=${encodeURIComponent(target)}`;
+      let g = localStorage.getItem(`barbie_gender_${target}`) ||
+              localStorage.getItem(`barbie_gender_model_${target}`) ||
+              (this.currentModelPath ? localStorage.getItem(`barbie_gender_model_${this.currentModelPath}`) : null) ||
+              localStorage.getItem('barbie_last_gender') || '';
+      const gParam = g ? `&gender=${encodeURIComponent(g)}` : '';
+      link.href = `/?path=${encodeURIComponent(target)}${gParam}`;
     } else {
       link.href = '/';
     }

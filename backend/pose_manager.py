@@ -35,6 +35,42 @@ class PoseManager:
       }
     }
     """
+    _session_gender_cache: Dict[str, str] = {}
+
+    @classmethod
+    def get_cached_gender(cls, folder_path: str) -> str:
+        try:
+            p = Path(folder_path).expanduser().resolve()
+            if str(p) in cls._session_gender_cache:
+                return cls._session_gender_cache[str(p)]
+            parts = p.parts
+            if len(parts) >= 3 and parts[-1].lower() == "photos":
+                model_dir = str(p.parent.parent)
+                if model_dir in cls._session_gender_cache:
+                    return cls._session_gender_cache[model_dir]
+            elif len(parts) >= 2 and parts[-1].lower() == "photos":
+                model_dir = str(p.parent)
+                if model_dir in cls._session_gender_cache:
+                    return cls._session_gender_cache[model_dir]
+        except Exception:
+            pass
+        return "male"
+
+    @classmethod
+    def set_cached_gender(cls, folder_path: str, gender: str) -> None:
+        if not gender:
+            return
+        try:
+            p = Path(folder_path).expanduser().resolve()
+            cls._session_gender_cache[str(p)] = gender
+            parts = p.parts
+            if len(parts) >= 3 and parts[-1].lower() == "photos":
+                cls._session_gender_cache[str(p.parent.parent)] = gender
+            elif len(parts) >= 2 and parts[-1].lower() == "photos":
+                cls._session_gender_cache[str(p.parent)] = gender
+        except Exception:
+            pass
+
     @staticmethod
     def get_pose_file_path(folder_path: str) -> Path:
         return Path(folder_path).expanduser().resolve() / "pose.json"
@@ -158,7 +194,7 @@ class PoseManager:
     def get_folder_defaults(cls, folder_path: str) -> Dict[str, Any]:
         file_data = cls.load_poses_file(folder_path)
         return {
-            "gender": file_data.get("gender", "male"),
+            "gender": cls.get_cached_gender(folder_path),
             "fitting": file_data.get("fitting", {
                 "top": file_data.get("top_fit", "regular"),
                 "bottom": file_data.get("bottom_fit", "regular")
@@ -232,6 +268,8 @@ class PoseManager:
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(file_data, f, indent=2, ensure_ascii=False)
         tmp_path.replace(pose_path)
+
+        cls.set_cached_gender(str(folder), gender)
 
         return {
             "gender": gender,
