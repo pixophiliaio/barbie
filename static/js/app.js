@@ -924,46 +924,16 @@ class App {
   }
 
   checkFolderCompletion() {
+    // Navigation to next photoshoot is user-driven:
+    // We update stats and button hints, but NEVER auto-advance with a countdown timer.
     if (!this.folderData) return;
-    const isComplete = this.isFolderComplete();
-    const isLastPhoto = this.currentImageIndex >= this.folderData.images.length - 1;
-
-    // If all photos in this folder are annotated, and user is on the last photo:
-    if (isComplete && isLastPhoto) {
-      const nextFolder = this.getNextFolder();
-      if (!nextFolder) {
-        this.showAllFoldersCompletedModal();
-        return;
-      }
-      this.startAutoAdvance(nextFolder);
-    }
+    this.updateFolderStats();
+    this.updateNavigationButtons();
   }
 
   startAutoAdvance(nextFolder) {
-    if (!this.completeBanner) return;
-    if (this.autoAdvanceTimer) clearInterval(this.autoAdvanceTimer);
-
-    let remainingSeconds = 2;
-    if (this.completeCountdown) this.completeCountdown.textContent = remainingSeconds;
-    if (this.completeBannerTitle) {
-      this.completeBannerTitle.textContent = `Photoshoot Complete! (${this.folderData.images.length}/${this.folderData.images.length})`;
-    }
-    if (this.completeBannerDesc) {
-      this.completeBannerDesc.innerHTML = `Advancing to <strong>${nextFolder.rel_path}</strong> in <span id="completeCountdown">${remainingSeconds}</span>s...`;
-    }
-
-    this.completeBanner.style.display = 'flex';
-
-    this.autoAdvanceTimer = setInterval(() => {
-      remainingSeconds--;
-      const cdEl = document.getElementById('completeCountdown');
-      if (cdEl) cdEl.textContent = remainingSeconds;
-
-      if (remainingSeconds <= 0) {
-        this.cancelAutoAdvance();
-        this.moveToNextFolder();
-      }
-    }, 1000);
+    // Deprecated: automatic timer countdown is disabled so user has full control.
+    this.cancelAutoAdvance();
   }
 
   cancelAutoAdvance() {
@@ -1320,12 +1290,13 @@ class App {
       if (this.saveTimeout) {
         clearTimeout(this.saveTimeout);
         this.saveTimeout = null;
-        await this.saveCurrentPose();
       }
+      // Always ensure the active photo's pose is saved before advancing
+      await this.saveCurrentPose();
 
       if (this.currentImageIndex >= this.folderData.images.length - 1) {
         // Reached the final photo of this photoshoot!
-        // Finish current folder and seamlessly transition to next photoshoot.
+        // User explicitly clicked Next / pressed Enter -> advance to next photoshoot folder.
         await this.moveToNextFolder();
         return;
       }
@@ -1444,7 +1415,6 @@ class App {
       this.setSaveStatus('saved');
       this.updateFolderStats();
       this.updateNavigationButtons();
-      this.checkFolderCompletion();
     } catch (err) {
       console.error('Error saving pose:', err);
       this.setSaveStatus('error');
